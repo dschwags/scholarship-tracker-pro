@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { WelcomeDashboard } from '@/components/onboarding/welcome-dashboard';
-import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal';
+import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal-stub';
 import { ScholarshipDetailModal } from '@/components/scholarship/scholarship-detail-modal';
 
 export default function WelcomeTestPage() {

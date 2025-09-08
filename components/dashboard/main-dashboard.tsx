@@ -21,7 +21,7 @@ import { ScholarshipDetailModal } from '../scholarship/scholarship-detail-modal'
 
 import { Button } from '@/components/ui/button';
 import { InviteParentModal } from '../parent-linking/invite-parent-modal';
-import { FinancialGoalsModal } from '../goals/financial-goals-modal';
+import { FinancialGoalsModal } from '../goals/financial-goals-modal-stub';
 import { WelcomeDashboard } from '../onboarding/welcome-dashboard';
 
 // Types

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Target } from 'lucide-react';
 import { useGoals } from '@/contexts/goals-context';
-import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal';
+import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal-stub';
 
 interface FinancialProgressProps {
   stats: {
