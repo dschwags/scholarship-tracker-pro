@@ -118,11 +118,12 @@ export function ImportModal({
       
     } catch (error) {
       console.error('Import failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setImportResult({
         success: false,
         summary: { scholarshipsImported: 0, duplicatesFound: 0, conflictsResolved: 0, applicationsImported: 0 },
         conflicts: [],
-        errors: [error.message]
+        errors: [errorMessage]
       });
       setStep('result');
     } finally {
