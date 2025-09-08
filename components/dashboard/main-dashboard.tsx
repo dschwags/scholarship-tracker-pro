@@ -360,7 +360,7 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
   console.log('📊 Current stats being used:', {
     source: scholarships.length > 0 ? 'server-calculated' : 'client-calculated',
     totalApplications: currentStats.applications.total,
-    totalTracked: currentStats.funding.total || currentStats.funding.potential,
+    totalTracked: currentStats.funding.won + (currentStats.funding.potential || 0),
     scholarshipsFromServer: scholarships.length,
     scholarshipsFromState: scholarshipsData.length
   });
