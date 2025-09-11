@@ -6,20 +6,12 @@ import { User, Settings, X, DollarSign } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { UserPreferences } from '@/lib/types/user-preferences'
+import { ComponentUser } from '@/types/user'
 import { AccountSettings } from './account-settings'
 import { FinancialSettings } from './financial-settings'
 
 interface SettingsLayoutProps {
-  user: {
-    id: number
-    name?: string | null
-    email: string
-    role: string
-    gpa?: number | null
-    graduationYear?: number | null
-    school?: string | null
-    major?: string | null
-  }
+  user: ComponentUser
   preferences: UserPreferences | null
 }
 

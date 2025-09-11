@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GoalsData, Goal, FinancialGoal } from '@/components/goals/goals-types';
+import { useFeatureFlag } from '@/lib/feature-flags/hooks';
+import { useGoalsSystem } from '@/lib/hooks/use-goals-system';
+import useSWR from 'swr';
 
 interface GoalsContextType {
   goals: GoalsData;
@@ -16,6 +19,13 @@ interface GoalsContextType {
   getTotalFinancialCurrent: () => number;
   getOverallProgress: () => number;
   isLoading: boolean;
+  
+  // New system features
+  isUsingNewSystem: boolean;
+  hasLegacyData: boolean;
+  migrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed' | null;
+  migrateToNewSystem: () => Promise<void>;
+  systemError: string | null;
 }
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
@@ -76,23 +86,23 @@ const defaultGoalsData: GoalsData = {
       fundingSources: {
         federalAid: {
           pellGrant: {
-            amount: 6000,
-            awarded: true,
-            renewable: true,
-            academicRequirements: 'Maintain SAP (2.0 GPA minimum)'
+            amount: 0,
+            awarded: false,
+            renewable: false,
+            academicRequirements: ''
           },
           subsidizedLoans: {
-            amount: 3500,
-            interestRate: 5.50
+            amount: 0,
+            interestRate: 0
           },
           unsubsidizedLoans: {
-            amount: 2000,
-            interestRate: 5.50
+            amount: 0,
+            interestRate: 0
           },
           workStudy: {
-            amount: 2500,
-            hoursPerWeek: 15,
-            hourlyRate: 12.50
+            amount: 0,
+            hoursPerWeek: 0,
+            hourlyRate: 0
           },
           other: {
             amount: 0,
@@ -101,60 +111,35 @@ const defaultGoalsData: GoalsData = {
         },
         stateGrants: {
           needBased: {
-            amount: 2000,
-            programName: 'State Need Grant',
-            renewable: true,
-            requirements: 'FAFSA renewal and state residency'
+            amount: 0,
+            programName: '',
+            renewable: false,
+            requirements: ''
           },
           meritBased: {
-            amount: 1500,
-            programName: 'Academic Excellence Award',
-            gpaRequirement: 3.5,
-            renewable: true
+            amount: 0,
+            programName: '',
+            gpaRequirement: 0,
+            renewable: false
           },
           other: {
             amount: 0,
             description: ''
           }
         },
-        scholarships: [
-          {
-            id: 'scholarship-1',
-            name: 'Engineering Excellence Scholarship',
-            amount: 5000,
-            duration: 'annual',
-            isRenewable: true,
-            renewalRequirements: {
-              minGPA: 3.2,
-              fullTimeEnrollment: true,
-              majorRequirement: 'Engineering or Computer Science',
-              communityService: false,
-              additionalRequirements: 'Complete 30 credits per year'
-            },
-            awardDate: '2024-04-15',
-            disbursementSchedule: {
-              fall: 2500,
-              spring: 2500
-            },
-            status: 'awarded',
-            academicYears: ['2024-2025', '2025-2026', '2026-2027', '2027-2028'],
-            requirementsMet: true,
-            currentGPA: 3.4,
-            notes: 'Must maintain engineering major and complete annual community service report'
-          }
-        ],
+        scholarships: [],
         familyContribution: {
-          amount: 8000,
-          expectedFamilyContribution: 12000,
-          parentContribution: 6000,
-          studentContribution: 2000,
+          amount: 0,
+          expectedFamilyContribution: 0,
+          parentContribution: 0,
+          studentContribution: 0,
           studentSavings: 0
         },
         employment: {
-          amount: 3000,
-          jobType: 'part-time',
-          hoursPerWeek: 12,
-          hourlyRate: 15.00
+          amount: 0,
+          jobType: '',
+          hoursPerWeek: 0,
+          hourlyRate: 0
         }
       },
       
@@ -166,10 +151,10 @@ const defaultGoalsData: GoalsData = {
         costOfLiving: 'high'
       },
       
-      // Calculated totals
-      totalExpenses: 46000,
-      totalFunding: 35500,
-      remainingGap: 10500
+      // Calculated totals - no fake data
+      totalExpenses: 0,
+      totalFunding: 0,
+      remainingGap: 0
     }
   ],
   academic: [
@@ -259,18 +244,50 @@ const defaultGoalsData: GoalsData = {
 export function GoalsProvider({ children }: { children: React.ReactNode }) {
   const [goals, setGoalsState] = useState<GoalsData>(defaultGoalsData);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get user data for new system integration (OPTIMIZED)
+  const { data: userData } = useSWR('/api/user', null, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    refreshWhenOffline: false,
+    refreshWhenHidden: false,
+    dedupingInterval: 30000 // 30 seconds
+  });
+  const userId = userData?.id;
+  
+  // Feature flags and new system integration
+  const newSystemEnabled = useFeatureFlag('new_goals_system');
+  const {
+    goals: newSystemGoals,
+    isLoading: newSystemLoading,
+    error: newSystemError,
+    addGoal: addNewGoal,
+    updateGoal: updateNewGoal, 
+    deleteGoal: deleteNewGoal,
+    migrateData,
+    isUsingNewSystem,
+    hasLegacyData,
+    migrationStatus
+  } = useGoalsSystem(userId);
 
-  // Load goals from localStorage on mount
+  // Determine which system to use and merge data
   useEffect(() => {
-    const savedGoals = localStorage.getItem('scholarship-tracker-goals');
-    if (savedGoals) {
-      try {
-        setGoalsState(JSON.parse(savedGoals));
-      } catch (error) {
-        console.error('Error loading goals from localStorage:', error);
+    if (isUsingNewSystem && newSystemGoals.length > 0) {
+      // Convert new system goals to legacy format for compatibility
+      const convertedGoals = convertNewGoalsToLegacyFormat(newSystemGoals);
+      setGoalsState(convertedGoals);
+    } else {
+      // Load legacy goals from localStorage
+      const savedGoals = localStorage.getItem('scholarship-tracker-goals');
+      if (savedGoals) {
+        try {
+          setGoalsState(JSON.parse(savedGoals));
+        } catch (error) {
+          console.error('Error loading goals from localStorage:', error);
+        }
       }
     }
-  }, []);
+  }, [isUsingNewSystem, newSystemGoals]);
 
   // Save goals to localStorage whenever goals change
   const setGoals = (newGoals: GoalsData) => {
@@ -287,7 +304,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
     const goalIndex = newGoals[updatedGoal.type].findIndex(g => g.id === updatedGoal.id);
     
     if (goalIndex !== -1) {
-      newGoals[updatedGoal.type][goalIndex] = updatedGoal as any;
+      newGoals[updatedGoal.type][goalIndex] = updatedGoal;
       setGoals(newGoals);
     }
   };
@@ -298,16 +315,37 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
     setGoals(newGoals);
   };
 
-  const addGoal = (newGoal: Goal) => {
-    const newGoals = { ...goals };
-    newGoals[newGoal.type].push(newGoal as any);
-    setGoals(newGoals);
+  const addGoal = async (newGoal: Goal) => {
+    if (isUsingNewSystem && newGoal.type === 'financial') {
+      // Use new system for financial goals
+      try {
+        await addNewGoal({
+          title: newGoal.title,
+          description: newGoal.description,
+          targetAmount: newGoal.targetAmount || 0,
+          deadline: newGoal.deadline,
+          priority: newGoal.priority,
+          goalType: 'education',
+        });
+      } catch (error) {
+        console.error('Failed to add goal to new system:', error);
+        // Fallback to legacy system
+        const newGoals = { ...goals };
+        newGoals[newGoal.type].push(newGoal);
+        setGoals(newGoals);
+      }
+    } else {
+      // Use legacy system for non-financial goals or when new system is disabled
+      const newGoals = { ...goals };
+      newGoals[newGoal.type].push(newGoal);
+      setGoals(newGoals);
+    }
   };
 
   const getGoalById = (id: string): Goal | undefined => {
     for (const type of Object.keys(goals) as (keyof GoalsData)[]) {
       const goal = goals[type].find(g => g.id === id);
-      if (goal) return goal as Goal;
+      if (goal) return goal;
     }
     return undefined;
   };
@@ -315,13 +353,13 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
   const getActiveGoals = (): Goal[] => {
     const allGoals: Goal[] = [];
     Object.values(goals).forEach(typeGoals => {
-      allGoals.push(...(typeGoals.filter(g => g.isActive) as Goal[]));
+      allGoals.push(...typeGoals.filter(g => g.isActive));
     });
     return allGoals;
   };
 
   const getGoalsByType = (type: Goal['type']): Goal[] => {
-    return goals[type] as Goal[];
+    return goals[type];
   };
 
   const getTotalFinancialTarget = (): number => {
@@ -377,7 +415,14 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
     getTotalFinancialTarget,
     getTotalFinancialCurrent,
     getOverallProgress,
-    isLoading
+    isLoading: isLoading || newSystemLoading,
+    
+    // New system features
+    isUsingNewSystem,
+    hasLegacyData,
+    migrationStatus,
+    migrateToNewSystem: migrateData,
+    systemError: newSystemError
   };
 
   return (
@@ -385,6 +430,101 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
       {children}
     </GoalsContext.Provider>
   );
+}
+
+/**
+ * Convert new system goals to legacy GoalsData format for backward compatibility
+ */
+function convertNewGoalsToLegacyFormat(newGoals: any[]): GoalsData {
+  const legacyGoals: GoalsData = {
+    financial: [],
+    academic: [],
+    career: [],
+    personal: []
+  };
+
+  newGoals.forEach(goal => {
+    // Convert new system goal to legacy financial goal format
+    const legacyGoal: FinancialGoal = {
+      id: goal.id.toString(),
+      type: 'financial',
+      title: goal.title,
+      description: goal.description || '',
+      targetAmount: parseFloat(goal.targetAmount) || 0,
+      currentAmount: parseFloat(goal.currentAmount) || 0,
+      deadline: goal.deadline ? new Date(goal.deadline).toISOString().split('T')[0] : undefined,
+      priority: goal.priority || 'medium',
+      isActive: goal.status === 'active',
+      createdAt: goal.createdAt || '2024-01-01T00:00:00.000Z', // ✅ BUGX: Fixed timestamp to prevent infinite re-renders
+      updatedAt: goal.updatedAt || '2024-01-01T00:00:00.000Z', // ✅ BUGX: Fixed timestamp to prevent infinite re-renders
+      
+      // Enhanced fields from new system
+      scope: 'annual',
+      academicYear: goal.academicYear || '2024-2025',
+      calculationMethod: goal.calculationMethod || 'detailed-breakdown',
+      
+      // Default expense structure (can be enhanced later)
+      expenses: {
+        tuition: { amount: 0, inStateRate: 0, outOfStateRate: 0, currentlyInState: true },
+        roomAndBoard: { amount: 0, housingType: 'dorm', mealPlan: 0 },
+        books: { amount: 0, estimatePerSemester: 0 },
+        transportation: { amount: 0, type: 'car' },
+        personal: { amount: 0, monthlyEstimate: 0 },
+        fees: { amount: 0, breakdown: [] },
+        other: { amount: 0, description: '' }
+      },
+      
+      // Default funding sources (can be enhanced later)
+      fundingSources: {
+        federalAid: {
+          pellGrant: { amount: 0, awarded: false, renewable: false, academicRequirements: '' },
+          subsidizedLoans: { amount: 0, interestRate: 0 },
+          unsubsidizedLoans: { amount: 0, interestRate: 0 },
+          workStudy: { amount: 0, hoursPerWeek: 0, hourlyRate: 0 },
+          other: { amount: 0, description: '' }
+        },
+        stateGrants: {
+          needBased: { amount: 0, programName: '', renewable: false, requirements: '' },
+          meritBased: { amount: 0, programName: '', gpaRequirement: 0, renewable: false },
+          other: { amount: 0, description: '' }
+        },
+        scholarships: [],
+        familyContribution: {
+          amount: 0,
+          expectedFamilyContribution: 0,
+          parentContribution: 0,
+          studentContribution: 0
+        },
+        savingsAndInvestments: {
+          amount: 0,
+          accountTypes: [],
+          liquidityTimeframe: '',
+          riskTolerance: 'moderate'
+        },
+        emergencyOptions: {
+          additionalLoans: { amount: 0, source: '' },
+          familySupport: { amount: 0, terms: '' },
+          workIncome: { amount: 0, source: '' },
+          other: { amount: 0, description: '' }
+        }
+      },
+      
+      // Calculated fields
+      totalExpenses: parseFloat(goal.targetAmount) || 0,
+      totalFunding: parseFloat(goal.currentAmount) || 0,
+      fundingGap: (parseFloat(goal.targetAmount) || 0) - (parseFloat(goal.currentAmount) || 0),
+      
+      // AI and validation fields
+      aiConfidenceScore: parseFloat(goal.aiConfidenceScore) || 0.5,
+      needsHumanReview: goal.needsHumanReview || false,
+      validationWarnings: goal.validationWarnings || [],
+      lastValidated: goal.lastValidated || '2024-01-01T00:00:00.000Z' // ✅ BUGX: Fixed timestamp to prevent infinite re-renders
+    };
+    
+    legacyGoals.financial.push(legacyGoal);
+  });
+
+  return legacyGoals;
 }
 
 export function useGoals() {

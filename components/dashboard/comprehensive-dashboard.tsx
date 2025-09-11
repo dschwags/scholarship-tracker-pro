@@ -35,7 +35,7 @@ export default function ComprehensiveDashboard() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
 
-  // Calculate statistics - LOCKED VERSION from 38 minutes ago
+  // Calculate statistics - UNLOCKED and fixed for infinite loops
   const stats = useMemo(() => {
     const total = mockScholarships.length
     const applied = mockScholarships.filter(s => s.status === 'Applied' || s.status === 'Pending').length
@@ -91,7 +91,7 @@ export default function ComprehensiveDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Statistics Row - LOCKED VERSION from 38 minutes ago */}
+      {/* Statistics Row - UNLOCKED */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -138,7 +138,7 @@ export default function ComprehensiveDashboard() {
         </Card>
       </div>
 
-      {/* Main Content Card with Scholarship Management - LOCKED VERSION */}
+      {/* Main Content Card with Scholarship Management - UNLOCKED */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -218,7 +218,7 @@ export default function ComprehensiveDashboard() {
             )}
           </div>
 
-          {/* Scholarships Table - LOCKED VERSION */}
+          {/* Scholarships Table - UNLOCKED */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>

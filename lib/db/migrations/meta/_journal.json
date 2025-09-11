@@ -15,6 +15,13 @@
       "when": 1756839351836,
       "tag": "0001_lucky_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757571094666,
+      "tag": "0002_useful_matthew_murdock",
+      "breakpoints": true
     }
   ]
 }

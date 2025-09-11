@@ -12,16 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+// Using Dialog instead of AlertDialog
 import { AlertTriangle, Trash2, Shield, Users, FileText } from 'lucide-react';
 import { deleteUserAccount } from '@/lib/actions/user-management';
 import { toast } from 'sonner';
@@ -164,34 +155,41 @@ export function DeleteAccountModal({ children }: DeleteAccountModalProps) {
       </Dialog>
 
       {/* Final Confirmation Dialog */}
-      <AlertDialog open={showFinalConfirmation} onOpenChange={setShowFinalConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+      <Dialog open={showFinalConfirmation} onOpenChange={setShowFinalConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
               Final Confirmation
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+            </DialogTitle>
+            <DialogDescription>
               <span className="block mb-2">
                 Are you absolutely sure you want to delete your account?
               </span>
               <span className="font-medium text-red-600 dark:text-red-400">
                 This action is permanent and cannot be undone.
               </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowFinalConfirmation(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="flex-1 bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
               {isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

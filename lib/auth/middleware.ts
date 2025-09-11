@@ -101,7 +101,7 @@ export function validatedActionWithPermission<S extends z.ZodType<any, any>, T>(
       return { error: 'Authentication required' };
     }
 
-    if (!canAccessResource(user, resource as any, requiredAction)) {
+    if (!canAccessResource(user, resource, requiredAction)) {
       return { error: 'Insufficient permissions for this action' };
     }
 

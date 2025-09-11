@@ -13,103 +13,29 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { signOut } from '@/app/(login)/actions';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { User } from '@/lib/db/schema';
-import useSWR, { mutate } from 'swr';
+import { mutate } from 'swr';
 import ThemeControls from './theme-controls';
 import { siteConfig } from '@/lib/config';
-
-const fetcher = async (url: string) => {
-  console.log('🚀 SWR Fetcher: Starting request to', url);
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      credentials: 'include', // Ensure cookies are sent
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    console.log('📦 SWR Fetcher: Response received:', {
-      status: res.status,
-      ok: res.ok,
-      url: res.url
-    });
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    }
-    
-    const data = await res.json();
-    console.log('📄 SWR Fetcher: Data parsed:', {
-      hasData: !!data,
-      dataType: typeof data,
-      isUserObject: data && typeof data === 'object' && 'email' in data,
-      userEmail: data?.email
-    });
-    
-    return data;
-  } catch (error) {
-    console.error('🚨 SWR Fetcher: Error occurred:', error);
-    throw error;
-  }
-};
+import { useAuthUser } from '@/contexts/auth-context';
 
 function UserMenu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showSignInButtons, setShowSignInButtons] = useState(false);
-  const { data: user, error, isValidating, mutate } = useSWR<User>('/api/user', fetcher, {
-    fallbackData: undefined,
-    revalidateOnFocus: true,
-    revalidateOnMount: true,
-    revalidateOnReconnect: true,
-    refreshInterval: 0,
-    dedupingInterval: 1000, // 1 second for debugging
-    errorRetryCount: 5,
-    errorRetryInterval: 500,
-    keepPreviousData: false,
-    onError: (error) => {
-      console.error('🚨 UserMenu SWR Error:', error);
-    },
-    onSuccess: (data) => {
-      console.log('✅ UserMenu SWR Success callback triggered!');
-      console.log('📈 SWR Success data details:', {
-        hasData: !!data,
-        dataType: typeof data,
-        isNull: data === null,
-        isUser: data && typeof data === 'object' && 'email' in data,
-        userEmail: data?.email,
-        userName: data?.name
-      });
-    },
-    onLoadingSlow: () => {
-      console.log('🐌 UserMenu SWR: Loading is slow...');
-    }
-  });
+  // ✅ BUGX: Removed showSignInButtons state to eliminate useEffect infinite loops
+  const user = useAuthUser(); // Use auth context instead of SWR
   const router = useRouter();
 
-  // Use useEffect to delay showing sign-in buttons
-  useEffect(() => {
-    console.log('🔍 UserMenu Auth State Check:', {
-      hasUser: !!user,
-      userEmail: user?.email,
-      userName: user?.name,
-      isValidating,
-      error: !!error,
-      showSignInButtons
-    });
-    
-    if (!user && !isValidating) {
-      const timer = setTimeout(() => {
-        console.log('📝 UserMenu: Setting showSignInButtons to TRUE (no user found)');
-        setShowSignInButtons(true);
-      }, 200); // Small delay to prevent flickering
-      return () => clearTimeout(timer);
-    } else {
-      console.log('📝 UserMenu: Setting showSignInButtons to FALSE (user found or validating)');
-      setShowSignInButtons(false);
-    }
-  }, [user, isValidating, error, showSignInButtons]);
+  // ✅ BUGX CRITICAL FIX: Remove ALL useEffect hooks to eliminate infinite loops
+  // Calculate showSignInButtons directly without state updates
+  const shouldShowSignInButtons = !user;
+  
+  console.log('🔍 UserMenu Auth State Check:', {
+    hasUser: !!user,
+    userEmail: user?.email,
+    userName: user?.name,
+    shouldShowSignInButtons
+  });
 
   async function handleSignOut() {
     await signOut();
@@ -136,10 +62,9 @@ function UserMenu() {
           <Avatar className="cursor-pointer size-9">
             <AvatarImage alt={user.name || ''} />
             <AvatarFallback>
-              {user.email
-                .split(' ')
-                .map((n) => n[0])
-                .join('')}
+              {user.name
+                ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase()
+                : user.email.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
@@ -201,18 +126,10 @@ function UserMenu() {
     );
   }
 
-  // Show loading state while validating and no user data
-  if (isValidating && !user) {
-    console.log('⏳ UserMenu: Showing loading state (validating && no user)');
-    return (
-      <div className="flex items-center space-x-4">
-        <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
-      </div>
-    );
-  }
+  // No loading state needed since we use auth context directly
 
-  // Show sign in buttons only after delay when we're sure there's no user
-  if (showSignInButtons) {
+  // Show sign in buttons when there's no user (calculated directly)
+  if (shouldShowSignInButtons) {
     console.log('🔑 UserMenu: Showing sign-in buttons');
     return (
       <div className="flex items-center space-x-4">
@@ -237,6 +154,22 @@ function UserMenu() {
 
 }
 
+// Conditional UserMenu that hides on landing page
+function ConditionalUserMenu() {
+  const pathname = usePathname();
+  const isLandingPage = pathname === '/';
+  
+  // On landing page, don't show any auth UI in header
+  // (Get Started & Sign In buttons are in the main content)
+  if (isLandingPage) {
+    console.log('🏠 ConditionalUserMenu: Landing page detected, hiding auth UI');
+    return null;
+  }
+  
+  // On all other pages, show normal UserMenu
+  return <UserMenu />;
+}
+
 export default function Header() {
   return (
     <header className="border-b border-border bg-background">
@@ -254,7 +187,7 @@ export default function Header() {
         <div className="flex items-center space-x-4">
           <ThemeControls />
           <Suspense fallback={<div className="h-9" />}>
-            <UserMenu />
+            <ConditionalUserMenu />
           </Suspense>
         </div>
       </div>

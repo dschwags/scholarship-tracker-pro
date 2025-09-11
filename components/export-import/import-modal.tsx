@@ -352,7 +352,7 @@ export function ImportModal({
             </div>
           )}
 
-          {importResult?.errors.length > 0 && (
+          {importResult?.errors && importResult.errors.length > 0 && (
             <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200">
               <div className="font-medium text-red-800 dark:text-red-200 mb-1">Errors:</div>
               <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">

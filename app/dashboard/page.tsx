@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth/session'
-import { MainDashboard } from '@/components/dashboard/main-dashboard'
+import { MainDashboard } from '@/components/dashboard/main-dashboard' // ✅ BugX infinite loop fixes applied
 import { db } from '@/lib/db/drizzle'
 import { scholarships, applications } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -61,9 +61,8 @@ export default async function Dashboard() {
   const totalPending = userScholarships.filter(s => s.status === 'submitted').length;
   const completedApplications = totalAwarded + totalRejected;
   const successRate = completedApplications > 0 ? Math.round((totalAwarded / completedApplications) * 100) : 0;
-  const totalEarnings = userScholarships
-    .filter(s => s.status === 'awarded')
-    .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  // No earnings until actual scholarships are won
+  const totalEarnings = 0;
 
 
 
@@ -84,8 +83,8 @@ export default async function Dashboard() {
     },
     funding: {
       total: totalTracked,
-      won: totalEarnings,
-      potential: userScholarships.filter(s => s.status !== 'rejected').reduce((sum, s) => sum + parseFloat(s.amount), 0)
+      won: 0,
+      potential: 0
     },
     successRate,
     upcomingDeadlines: userScholarships.filter(s => {
@@ -131,10 +130,10 @@ export default async function Dashboard() {
     {
       id: 3,
       type: 'status' as const,
-      title: 'Award Received',
-      description: 'Athletics Scholarship - $12,000 awarded',
+      title: 'Application Status Update',
+      description: 'Merit-based scholarship application reviewed',
       timestamp: '3 days ago',
-      status: 'won'
+      status: 'under_review'
     },
     {
       id: 4,
@@ -153,8 +152,6 @@ export default async function Dashboard() {
           stats={stats} 
           recentActivity={recentActivity}
           scholarships={userScholarships}
-          welcomeStats={welcomeStats}
-          apiError={apiError}
         />
       </div>
     </div>

@@ -517,8 +517,8 @@ export const TEMPLATE_EXPENSE_CONFIGS = {
 } as const;
 
 // Helper function to get template configuration
-export const getTemplateConfig = (template: FinancialGoalTemplate | '') => {
-  if (!template || template === 'custom') return TEMPLATE_EXPENSE_CONFIGS.default;
+export const getTemplateConfig = (template: FinancialGoalTemplate | '' | 'none') => {
+  if (!template || template === 'custom' || template === 'none') return TEMPLATE_EXPENSE_CONFIGS.default;
   return TEMPLATE_EXPENSE_CONFIGS[template as keyof typeof TEMPLATE_EXPENSE_CONFIGS] || TEMPLATE_EXPENSE_CONFIGS.default;
 };
 
@@ -569,9 +569,9 @@ export const calculateTotalFunding = (fundingSources: FinancialGoal['fundingSour
     total += state.needBased?.amount || 0;
     total += state.meritBased?.amount || 0;
     total += state.other?.amount || 0;
-    // Add entries if they exist
-    if (state.entries) {
-      total += state.entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+    // Add entries if they exist - type assertion for BugX schema compatibility
+    if ((state as any).entries) {
+      total += (state as any).entries.reduce((sum: number, entry: any) => sum + (entry.amount || 0), 0);
     }
   }
   

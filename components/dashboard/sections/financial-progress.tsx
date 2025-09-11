@@ -6,13 +6,28 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Target } from 'lucide-react';
 import { useGoals } from '@/contexts/goals-context';
-import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal-stub';
+import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal';
 
 interface FinancialProgressProps {
   stats: {
     funding: {
       won: number;
     };
+    // Enhanced analytics fields
+    enhanced?: {
+      totalTarget: number;
+      totalCurrent: number;
+      fundingGap: number;
+      progressPercentage: number;
+      riskLevel: 'low' | 'medium' | 'high' | 'critical';
+      completionProbability: number;
+      expenseBreakdown: any;
+      fundingBreakdown: any;
+      recommendations: string[];
+      warnings: string[];
+    };
+    hasRealGoalsData?: boolean;
+    isUsingNewSystem?: boolean;
   };
 }
 
@@ -147,6 +162,56 @@ export function FinancialProgress({ stats }: FinancialProgressProps) {
               </p>
             </div>
           </div>
+
+          {/* Enhanced Analytics Insights */}
+          {stats.enhanced && stats.hasRealGoalsData && (
+            <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-2 h-2 rounded-full ${
+                  stats.enhanced.riskLevel === 'low' ? 'bg-green-500' :
+                  stats.enhanced.riskLevel === 'medium' ? 'bg-yellow-500' :
+                  stats.enhanced.riskLevel === 'high' ? 'bg-orange-500' : 'bg-red-500'
+                }`}></div>
+                <h4 className="text-sm font-medium text-green-900 dark:text-green-100">
+                  Analytics Insights {stats.isUsingNewSystem && '(Live Data)'}
+                </h4>
+                <div className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${
+                  stats.enhanced.riskLevel === 'low' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                  stats.enhanced.riskLevel === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
+                  stats.enhanced.riskLevel === 'high' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' :
+                  'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                }`}>
+                  {stats.enhanced.completionProbability}% Success Probability
+                </div>
+              </div>
+              
+              {/* Key Recommendations */}
+              {stats.enhanced.recommendations.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-green-700 dark:text-green-300 font-medium">Top Recommendations:</p>
+                  {stats.enhanced.recommendations.slice(0, 2).map((rec, index) => (
+                    <div key={index} className="flex items-start gap-1.5">
+                      <span className="text-green-600 dark:text-green-400 text-xs mt-0.5">•</span>
+                      <p className="text-xs text-green-800 dark:text-green-200">{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Warning Flags */}
+              {stats.enhanced.warnings.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-orange-700 dark:text-orange-300 font-medium">⚠️ Attention Required:</p>
+                  {stats.enhanced.warnings.slice(0, 1).map((warning, index) => (
+                    <div key={index} className="flex items-start gap-1.5">
+                      <span className="text-orange-600 dark:text-orange-400 text-xs mt-0.5">•</span>
+                      <p className="text-xs text-orange-800 dark:text-orange-200">{warning}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         )}
       </CardContent>
@@ -154,9 +219,17 @@ export function FinancialProgress({ stats }: FinancialProgressProps) {
       <FinancialGoalsModal
         isOpen={showGoalsModal}
         onClose={() => setShowGoalsModal(false)}
-        onSaveGoals={(financialGoals) => setGoals({ ...goals, financial: financialGoals })}
-        initialGoals={goals.financial}
-        mode="edit"
+        onSaveGoals={(savedGoals) => {
+          console.log('💰 Saving financial goals from FinancialProgress:', savedGoals);
+          // Update goals context with the new financial goals
+          const updatedGoals = { ...goals };
+          updatedGoals.financial = savedGoals;
+          setGoals(updatedGoals);
+          setShowGoalsModal(false);
+        }}
+        initialGoals={goals.financial || []}
+        mode="create"
+        editingGoal={null}
       />
     </Card>
   );

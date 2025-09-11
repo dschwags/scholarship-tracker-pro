@@ -250,7 +250,7 @@ export class DataExportService {
         'Application Status': options.includeApplicationProgress 
           ? (scholarship.status || 'Not Started') 
           : 'Not Tracked',
-        'Website/Contact': (scholarship as any).website || (scholarship as any).contact || '', 
+        'Website/Contact': scholarship.website || scholarship.contact || '', 
         'Notes': options.includePersonalResponses ? (scholarship.notes || '') : '',
         'Difficulty Level': this.assessDifficulty(scholarship),
         'Recommended For': this.getRecommendations(scholarship)
@@ -286,8 +286,8 @@ export class DataExportService {
           'Deadline': scholarship.deadline || 'No deadline specified',
           'Essay Required': scholarship.essays?.length ? 'Yes' : 'No',
           'Documents Needed': scholarship.documents?.map(d => d.name).join('; ') || 'None',
-          'Submission Date': (scholarship as any).submissionDate || '', 
-          'Follow-up Date': (scholarship as any).followUpDate || '', 
+          'Submission Date': scholarship.submissionDate || '', 
+          'Follow-up Date': scholarship.followUpDate || '', 
           'Notes': options.includePersonalResponses ? (scholarship.notes || '') : ''
         };
         return row;

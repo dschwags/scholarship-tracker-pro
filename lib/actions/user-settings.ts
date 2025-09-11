@@ -76,10 +76,14 @@ export async function updateUserPreferences(preferences: Partial<UserPreferences
 export async function updateUserProfile(profileData: {
   name?: string
   bio?: string
-  gpa?: number
-  graduationYear?: number
+  phone?: string
+  gpa?: number  // converted from string in the form handler
+  graduationYear?: number  // converted from string in the form handler
   school?: string
   major?: string
+  educationLevel?: string
+  educationalStatus?: string
+  educationalDescription?: string
 }) {
   try {
     const session = await getSession()

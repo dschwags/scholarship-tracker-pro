@@ -296,11 +296,11 @@ export function GoalsManagementModal({
       // Update existing goal
       const index = updatedGoals[formData.type].findIndex(g => g.id === editingId);
       if (index !== -1) {
-        updatedGoals[formData.type][index] = newGoal as any;
+        updatedGoals[formData.type][index] = newGoal;
       }
     } else {
       // Add new goal
-      updatedGoals[formData.type].push(newGoal as any);
+      updatedGoals[formData.type].push(newGoal);
     }
 
     setGoals(updatedGoals);
@@ -310,7 +310,7 @@ export function GoalsManagementModal({
 
   const handleDeleteGoal = (type: Goal['type'], id: string) => {
     const updatedGoals = { ...goals };
-    updatedGoals[type] = updatedGoals[type].filter(g => g.id !== id) as any;
+    updatedGoals[type] = updatedGoals[type].filter(g => g.id !== id);
     setGoals(updatedGoals);
   };
 
@@ -413,7 +413,7 @@ export function GoalsManagementModal({
         {/* Type-specific fields */}
         {formData.type === 'financial' && (
           <EnhancedFinancialForm
-            formData={formData as any}
+            formData={formData}
             onChange={handleFormDataChange}
             errors={errors}
           />

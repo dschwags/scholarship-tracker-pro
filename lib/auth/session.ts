@@ -51,21 +51,26 @@ export async function verifyToken(input: string) {
 }
 
 export async function getSession() {
-  console.log('🔍 getSession: Starting session check...');
-  const sessionCookie = (await cookies()).get('session');
-  console.log('🍪 getSession: Session cookie exists:', !!sessionCookie?.value);
-  
-  if (!sessionCookie?.value) {
-    console.log('❌ getSession: No session cookie found, returning null');
-    return null;
-  }
+  const stackTrace = new Error().stack?.split('\n')[2]?.trim() || 'unknown';
+  console.log('🔍 getSession: Starting session check from:', stackTrace);
   
   try {
+    const sessionCookie = (await cookies()).get('session');
+    console.log('🍪 getSession: Session cookie exists:', !!sessionCookie?.value);
+    
+    if (!sessionCookie?.value) {
+      console.log('❌ getSession: No session cookie found, returning null');
+      console.log('🔍 getSession: Cookie details:', sessionCookie);
+      return null;
+    }
+    
+    console.log('🗝 getSession: Attempting JWT verification...');
     const session = await verifyToken(sessionCookie.value);
-    console.log('✅ getSession: Session verified successfully:', {
+    console.log('✅ getSession: JWT verification successful:', {
       hasUser: !!session?.user,
       userEmail: session?.user?.email,
-      expires: session?.expires
+      expires: session?.expires,
+      calledFrom: stackTrace
     });
     
     // Check expiration
@@ -77,6 +82,7 @@ export async function getSession() {
     return session;
   } catch (error) {
     console.error('🚨 getSession: Error verifying token:', error);
+    console.log('🔍 getSession: Error occurred in context:', stackTrace);
     return null;
   }
 }

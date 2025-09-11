@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, X } from 'lucide-react';
+import { safeAccess } from '@/components/bugx/BugX-Schema-Framework';
 import {
   FinancialGoal,
   CALCULATION_METHODS,
@@ -61,10 +64,23 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const updateExpense = (section: string, field: string, value: any) => {
+    const currentSection = formData.expenses?.[section as keyof typeof formData.expenses] || {};
+    
+    // Ensure the base expenses structure exists
+    const baseExpenses = formData.expenses || {
+      tuition: { amount: 0 },
+      roomAndBoard: { amount: 0, housingType: 'dorm' as const },
+      books: { amount: 0 },
+      transportation: { amount: 0, type: 'car' as const },
+      personal: { amount: 0 },
+      fees: { amount: 0 },
+      other: { amount: 0 }
+    };
+    
     const newExpenses = {
-      ...formData.expenses,
+      ...baseExpenses,
       [section]: {
-        ...formData.expenses?.[section],
+        ...currentSection,
         [field]: value
       }
     };
@@ -72,21 +88,41 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const updateFunding = (section: string, field: string, value: any) => {
-    const newFunding = { ...formData.fundingSources };
+    const baseFunding = formData.fundingSources || {
+      federalAid: {
+        pellGrant: { amount: 0, awarded: false, renewable: false },
+        subsidizedLoans: { amount: 0 },
+        unsubsidizedLoans: { amount: 0 },
+        workStudy: { amount: 0 },
+        other: { amount: 0 }
+      },
+      stateGrants: {
+        needBased: { amount: 0, renewable: false },
+        meritBased: { amount: 0, renewable: false },
+        other: { amount: 0 }
+      },
+      scholarships: [],
+      familyContribution: { amount: 0 },
+      employment: { amount: 0, jobType: 'part-time' as const }
+    };
+    
+    const newFunding = { ...baseFunding };
     
     if (field === '') {
-      // Direct assignment for arrays like scholarships
-      newFunding[section] = value;
+      // Direct assignment for arrays like scholarships - use type assertion
+      (newFunding as any)[section] = value;
     } else if (typeof value === 'object' && value.amount !== undefined) {
       // Handle nested objects like federalAid.pellGrant
-      newFunding[section] = {
-        ...newFunding[section],
+      const currentFundingSection = (newFunding as any)[section] || {};
+      (newFunding as any)[section] = {
+        ...currentFundingSection,
         [field]: value
       };
     } else {
       // Handle simple field updates
-      newFunding[section] = {
-        ...newFunding[section],
+      const currentFundingSection = (newFunding as any)[section] || {};
+      (newFunding as any)[section] = {
+        ...currentFundingSection,
         [field]: value
       };
     }
@@ -95,7 +131,8 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const addExpenseEntry = (section: string) => {
-    const currentEntries = formData.expenses?.[section]?.entries || [];
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
     const newEntry = {
       amount: 0,
       type: section === 'transportation' ? 'car' : 'other',
@@ -106,144 +143,278 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const removeExpenseEntry = (section: string, index: number) => {
-    const currentEntries = formData.expenses?.[section]?.entries || [];
-    const newEntries = currentEntries.filter((_, i) => i !== index);
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
+    const newEntries = currentEntries.filter((_: any, i: number) => i !== index);
     updateExpense(section, 'entries', newEntries);
   };
 
   const updateExpenseEntry = (section: string, index: number, field: string, value: any) => {
-    const currentEntries = formData.expenses?.[section]?.entries || [];
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
     const newEntries = [...currentEntries];
     newEntries[index] = { ...newEntries[index], [field]: value };
     updateExpense(section, 'entries', newEntries);
   };
 
-  const addFundingEntry = (section: string) => {
-    const currentEntries = formData.fundingSources?.[section]?.entries || [];
-    const newEntry = {
-      amount: 0,
-      source: '',
-      description: ''
-    };
-    
-    updateFunding(section, 'entries', [...currentEntries, newEntry]);
-  };
-
-  const removeFundingEntry = (section: string, index: number) => {
-    const currentEntries = formData.fundingSources?.[section]?.entries || [];
-    const newEntries = currentEntries.filter((_, i) => i !== index);
-    updateFunding(section, 'entries', newEntries);
-  };
-
-  const updateFundingEntry = (section: string, index: number, field: string, value: any) => {
-    const currentEntries = formData.fundingSources?.[section]?.entries || [];
-    const newEntries = [...currentEntries];
-    newEntries[index] = { ...newEntries[index], [field]: value };
-    updateFunding(section, 'entries', newEntries);
-  };
-
-  // Get template configuration
-  const templateConfig = getTemplateConfig(selectedTemplate);
-
-  // Template application effect
-  useEffect(() => {
-    if (selectedTemplate && selectedTemplate !== 'custom') {
-      // Apply template-specific title if not custom
-      const template = FINANCIAL_GOAL_TEMPLATES[selectedTemplate];
-      if (template && !formData.title) {
-        onChange({ ...formData, title: template.title });
-      }
-    }
-  }, [selectedTemplate]);
-
-  // Render template-specific expenses
+  // BugX Template-based conditional rendering
   const renderTemplateExpenses = () => {
-    return templateConfig.expenses.map((expenseConfig) => {
-      const { key, title, placeholder, description, allowMultiple } = expenseConfig;
-      const currentValue = formData.expenses?.[key]?.amount || 0;
-      
-      return (
-        <div key={key} className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-          <h4 className="font-medium text-sm mb-2">{title}</h4>
-          <div className="space-y-2">
-            <div className="flex items-center gap-4">
+    const templateConfig = getTemplateConfig(selectedTemplate);
+    const defaultExpenses = [
+      { key: 'tuition', title: '🎓 Tuition & Fees', placeholder: '35000', description: 'Annual tuition and mandatory fees' },
+      { key: 'roomAndBoard', title: '🏠 Room & Board', placeholder: '12000', description: 'Housing and meal plans' },
+      { key: 'books', title: '📚 Books & Supplies', placeholder: '1200', description: 'Textbooks and academic materials' },
+      { key: 'transportation', title: '🚗 Transportation', placeholder: '2000', description: 'Travel and commuting costs' },
+      { key: 'personal', title: '👤 Personal Expenses', placeholder: '3000', description: 'Personal and miscellaneous costs' },
+      { key: 'other', title: '📋 Other Expenses', placeholder: '1000', description: 'Additional miscellaneous expenses' }
+    ];
+
+    const expensesToRender = selectedTemplate && templateConfig 
+      ? templateConfig.expenses || defaultExpenses
+      : defaultExpenses;
+
+    return (
+      <div className="space-y-3">
+        {expensesToRender.map((expense) => (
+          <div key={expense.key} className="border rounded-lg p-3 space-y-2 bg-white dark:bg-gray-900">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">{expense.title}</Label>
               <div className="flex items-center gap-2">
-                <Label className="text-sm min-w-fit">Amount:</Label>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                   <Input
                     type="number"
-                    className="w-24 pl-6"
-                    placeholder={placeholder}
-                    value={currentValue}
-                    onChange={(e) => updateExpense(key, 'amount', parseFloat(e.target.value) || 0)}
+                    className="w-24 pl-6 text-sm"
+                    placeholder={expense.placeholder}
+                    value={safeAccess(formData.expenses, `${expense.key}.amount`, '') || ''}
+                    onChange={(e) => updateExpense(expense.key, 'amount', parseFloat(e.target.value) || 0)}
                   />
                 </div>
               </div>
-              {description && (
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm text-gray-600">{description}</Label>
-                </div>
-              )}
-              {allowMultiple && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addExpenseEntry(key)}
-                  className="text-xs"
-                >
-                  + Add More
-                </Button>
-              )}
             </div>
+            {expense.description && (
+              <p className="text-xs text-gray-600 dark:text-gray-400">{expense.description}</p>
+            )}
             
-            {/* Additional entries for expenses that allow multiple */}
-            {allowMultiple && formData.expenses?.[key]?.entries && (
-              <div className="space-y-1">
-                {formData.expenses[key].entries.map((entry: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2 ml-4">
+            {/* Special handling for specific expense types */}
+            {expense.key === 'roomAndBoard' && (
+              <div className="flex items-center gap-2 mt-2">
+                <Label className="text-xs">Housing Type:</Label>
+                <Select
+                  value={safeAccess(formData.expenses, 'roomAndBoard.housingType', 'dorm')}
+                  onValueChange={(value) => updateExpense('roomAndBoard', 'housingType', value)}
+                >
+                  <SelectTrigger className="w-28 h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(HOUSING_TYPES).map(([key, type]) => (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {expense.key === 'transportation' && (
+              <div className="flex items-center gap-2 mt-2">
+                <Label className="text-xs">Transport Type:</Label>
+                <Select
+                  value={safeAccess(formData.expenses, 'transportation.type', 'car')}
+                  onValueChange={(value) => updateExpense('transportation', 'type', value)}
+                >
+                  <SelectTrigger className="w-28 h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TRANSPORTATION_TYPES).map(([key, type]) => (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Multiple entries support for transportation and other */}
+            {(expense.key === 'transportation' || expense.key === 'other') && (
+              <div className="space-y-2">
+                {safeAccess(formData.expenses, `${expense.key}.entries`, []).map((entry: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                    <Input
+                      placeholder="Description"
+                      className="text-xs h-7"
+                      value={entry.description || ''}
+                      onChange={(e) => updateExpenseEntry(expense.key, index, 'description', e.target.value)}
+                    />
                     <div className="relative">
                       <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                       <Input
                         type="number"
-                        className="w-24 pl-6"
-                        placeholder="0"
-                        value={entry.amount || 0}
-                        onChange={(e) => updateExpenseEntry(key, index, 'amount', parseFloat(e.target.value) || 0)}
+                        className="w-20 pl-6 text-xs h-7"
+                        value={entry.amount || ''}
+                        onChange={(e) => updateExpenseEntry(expense.key, index, 'amount', parseFloat(e.target.value) || 0)}
                       />
                     </div>
-                    <Input
-                      className="w-44"
-                      placeholder="Description"
-                      value={entry.description || ''}
-                      onChange={(e) => updateExpenseEntry(key, index, 'description', e.target.value)}
-                    />
                     <Button
-                      type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeExpenseEntry(key, index)}
-                      className="text-red-600 hover:text-red-800"
+                      className="h-7 w-7 p-0"
+                      onClick={() => removeExpenseEntry(expense.key, index)}
                     >
-                      ×
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => addExpenseEntry(expense.key)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Entry
+                </Button>
               </div>
             )}
           </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Enhanced funding sources with conditional logic
+  const renderFundingSources = () => {
+    return (
+      <div className="space-y-4">
+        {/* Federal Aid */}
+        <div className="border rounded-lg p-3 bg-blue-50 dark:bg-blue-950/30">
+          <Label className="text-sm font-medium text-blue-800 dark:text-blue-200">🇺🇸 Federal Aid</Label>
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <div>
+              <Label className="text-xs">Pell Grant</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <Input
+                  type="number"
+                  className="pl-6 text-sm h-8"
+                  value={safeAccess(formData.fundingSources, 'federalAid.pellGrant.amount', '') || ''}
+                  onChange={(e) => updateFunding('federalAid', 'pellGrant', { 
+                    ...safeAccess(formData.fundingSources, 'federalAid.pellGrant', {}),
+                    amount: parseFloat(e.target.value) || 0 
+                  })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Work Study</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <Input
+                  type="number"
+                  className="pl-6 text-sm h-8"
+                  value={safeAccess(formData.fundingSources, 'federalAid.workStudy.amount', '') || ''}
+                  onChange={(e) => updateFunding('federalAid', 'workStudy', { 
+                    ...safeAccess(formData.fundingSources, 'federalAid.workStudy', {}),
+                    amount: parseFloat(e.target.value) || 0 
+                  })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Subsidized Loans</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <Input
+                  type="number"
+                  className="pl-6 text-sm h-8"
+                  value={safeAccess(formData.fundingSources, 'federalAid.subsidizedLoans.amount', '') || ''}
+                  onChange={(e) => updateFunding('federalAid', 'subsidizedLoans', { 
+                    ...safeAccess(formData.fundingSources, 'federalAid.subsidizedLoans', {}),
+                    amount: parseFloat(e.target.value) || 0 
+                  })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Unsubsidized Loans</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <Input
+                  type="number"
+                  className="pl-6 text-sm h-8"
+                  value={safeAccess(formData.fundingSources, 'federalAid.unsubsidizedLoans.amount', '') || ''}
+                  onChange={(e) => updateFunding('federalAid', 'unsubsidizedLoans', { 
+                    ...safeAccess(formData.fundingSources, 'federalAid.unsubsidizedLoans', {}),
+                    amount: parseFloat(e.target.value) || 0 
+                  })}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      );
-    });
+
+        {/* Family Contribution */}
+        <div className="border rounded-lg p-3 bg-purple-50 dark:bg-purple-950/30">
+          <Label className="text-sm font-medium text-purple-800 dark:text-purple-200">👨‍👩‍👧‍👦 Family Contribution</Label>
+          <div className="mt-2">
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <Input
+                type="number"
+                className="pl-6 text-sm h-8 w-32"
+                placeholder="15000"
+                value={safeAccess(formData.fundingSources, 'familyContribution.amount', '') || ''}
+                onChange={(e) => updateFunding('familyContribution', 'amount', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Employment */}
+        <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-950/30">
+          <Label className="text-sm font-medium text-green-800 dark:text-green-200">💼 Employment</Label>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <Input
+                type="number"
+                className="pl-6 text-sm h-8 w-28"
+                placeholder="5000"
+                value={safeAccess(formData.fundingSources, 'employment.amount', '') || ''}
+                onChange={(e) => updateFunding('employment', 'amount', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <Select
+              value={safeAccess(formData.fundingSources, 'employment.jobType', 'part-time')}
+              onValueChange={(value) => updateFunding('employment', 'jobType', value)}
+            >
+              <SelectTrigger className="w-32 h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(JOB_TYPES).map(([key, type]) => (
+                  <SelectItem key={key} value={key} className="text-sm">
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-3">
-      {/* Template Selection */}
-      <Card>
+    <div className="space-y-4">
+      {/* Goal Configuration Header */}
+      <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
         <CardHeader className="pb-2 pt-4">
-          <CardTitle>Financial Goal Template</CardTitle>
+          <CardTitle className="text-blue-800 dark:text-blue-200">🎯 Financial Goal Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex items-center gap-2">
@@ -406,257 +577,38 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
               )}
             </CardHeader>
             <CardContent className="space-y-2">
-              {/* State Grants */}
-              <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">🏛️ State Grants</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Amount:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="5000"
-                          value={formData.fundingSources?.stateGrants?.amount || 0}
-                          onChange={(e) => updateFunding('stateGrants', 'amount', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Grant Name:</Label>
-                      <Input
-                        className="w-44"
-                        placeholder="e.g., State Merit Grant"
-                        value={formData.fundingSources?.stateGrants?.source || ''}
-                        onChange={(e) => updateFunding('stateGrants', 'source', e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addFundingEntry('stateGrants')}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Add More
-                    </Button>
-                  </div>
-
-                  {/* Additional State Grant Entries */}
-                  {formData.fundingSources?.stateGrants?.entries?.map((entry, index) => (
-                    <div key={index} className="ml-4 p-2 bg-gray-50 dark:bg-gray-700 rounded border-l-2 border-green-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm min-w-fit">Amount:</Label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                            <Input
-                              type="number"
-                              className="w-24 pl-6"
-                              placeholder="0"
-                              value={entry.amount || 0}
-                              onChange={(e) => updateFundingEntry('stateGrants', index, 'amount', parseFloat(e.target.value) || 0)}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm min-w-fit">Grant Name:</Label>
-                          <Input
-                            className="w-44"
-                            placeholder="e.g., Need-Based Grant"
-                            value={entry.source || ''}
-                            onChange={(e) => updateFundingEntry('stateGrants', index, 'source', e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeFundingEntry('stateGrants', index)}
-                          className="text-red-600"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm min-w-fit">Description:</Label>
-                        <Input
-                          className="w-48"
-                          placeholder="Grant details or requirements"
-                          value={entry.description || ''}
-                          onChange={(e) => updateFundingEntry('stateGrants', index, 'description', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Federal Aid */}
-              <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">🏛️ Federal Aid</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Pell Grant:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="6000"
-                          value={formData.fundingSources?.federalAid?.pellGrant?.amount || 0}
-                          onChange={(e) => updateFunding('federalAid', 'pellGrant', { amount: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Work Study:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="2500"
-                          value={formData.fundingSources?.federalAid?.workStudy?.amount || 0}
-                          onChange={(e) => updateFunding('federalAid', 'workStudy', { amount: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Subsidized Loans:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="3500"
-                          value={formData.fundingSources?.federalAid?.subsidizedLoans?.amount || 0}
-                          onChange={(e) => updateFunding('federalAid', 'subsidizedLoans', { amount: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Unsubsidized Loans:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="2000"
-                          value={formData.fundingSources?.federalAid?.unsubsidizedLoans?.amount || 0}
-                          onChange={(e) => updateFunding('federalAid', 'unsubsidizedLoans', { amount: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scholarships */}
-              <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">🏆 Scholarships</h4>
-                <div className="space-y-2">
-                  {formData.fundingSources?.scholarships?.map((scholarship, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="0"
-                          value={scholarship.amount || 0}
-                          onChange={(e) => {
-                            const newScholarships = [...(formData.fundingSources?.scholarships || [])];
-                            newScholarships[index] = { ...newScholarships[index], amount: parseFloat(e.target.value) || 0 };
-                            updateFunding('scholarships', '', newScholarships);
-                          }}
-                        />
-                      </div>
-                      <Input
-                        className="w-44"
-                        placeholder="Scholarship name"
-                        value={scholarship.name || ''}
-                        onChange={(e) => {
-                          const newScholarships = [...(formData.fundingSources?.scholarships || [])];
-                          newScholarships[index] = { ...newScholarships[index], name: e.target.value };
-                          updateFunding('scholarships', '', newScholarships);
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newScholarships = (formData.fundingSources?.scholarships || []).filter((_, i) => i !== index);
-                          updateFunding('scholarships', '', newScholarships);
-                        }}
-                        className="text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const newScholarships = [...(formData.fundingSources?.scholarships || []), { amount: 0, name: '' }];
-                      updateFunding('scholarships', '', newScholarships);
-                    }}
-                    className="flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Add Scholarship
-                  </Button>
-                </div>
-              </div>
-
-              {/* Family & Friends */}
-              <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">👨‍👩‍👧‍👦 Family & Friends</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Family Support:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="10000"
-                          value={formData.fundingSources?.familyContribution?.amount || 0}
-                          onChange={(e) => updateFunding('familyContribution', 'amount', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Friends Support:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="1000"
-                          value={formData.fundingSources?.familyContribution?.friendsContribution || 0}
-                          onChange={(e) => updateFunding('familyContribution', 'friendsContribution', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {renderFundingSources()}
 
               <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
-                <div className="flex justify-between text-lg font-semibold mb-2">
+                <div className="flex justify-between text-lg font-semibold">
                   <span>Total Funding:</span>
-                  <span>{formatCurrency(formData.totalFunding || 0)}</span>
+                  <span className="text-green-600">{formatCurrency(formData.totalFunding || 0)}</span>
                 </div>
-                <div className="flex justify-between text-lg font-bold text-blue-600 dark:text-blue-400">
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Financial Summary */}
+          <Card className="bg-gray-50 dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700">
+            <CardHeader className="pb-2">
+              <CardTitle>💰 Financial Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between text-lg">
+                  <span>Total Expenses:</span>
+                  <span className="font-semibold">{formatCurrency(formData.totalExpenses || 0)}</span>
+                </div>
+                <div className="flex justify-between text-lg">
+                  <span>Total Funding:</span>
+                  <span className="font-semibold text-green-600">{formatCurrency(formData.totalFunding || 0)}</span>
+                </div>
+                <hr className="my-2" />
+                <div className="flex justify-between text-xl font-bold">
                   <span>Remaining Gap:</span>
-                  <span>{formatCurrency((formData.totalExpenses || 0) - (formData.totalFunding || 0))}</span>
+                  <span className={(formData.remainingGap || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                    {formatCurrency(formData.remainingGap || 0)}
+                  </span>
                 </div>
               </div>
             </CardContent>

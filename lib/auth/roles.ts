@@ -52,7 +52,7 @@ export function hasPermission(
   if (!permissions || !permissions[resource]) {
     return false;
   }
-  return permissions[resource].includes(action as any);
+  return permissions[resource].includes(action);
 }
 
 export function canAccessResource(

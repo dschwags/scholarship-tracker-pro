@@ -30,6 +30,11 @@ export async function getUser() {
     .limit(1);
 
   if (user.length === 0) {
+    // BugX Framework: Legacy session detected
+    // User ID from session doesn't exist (likely from nuclear reset)
+    console.log('🧹 BugX: Legacy session detected for non-existent user ID:', sessionData.user.id);
+    console.log('⚠️ BugX: Session cleanup needed - user should be redirected to clear legacy session');
+    
     return null;
   }
 

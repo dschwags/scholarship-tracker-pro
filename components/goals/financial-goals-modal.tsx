@@ -33,6 +33,7 @@ import {
   calculateTotalExpenses,
   calculateTotalFunding
 } from './goals-types';
+import { safeAccess } from '../bugx/BugX-Schema-Framework';
 import { EnhancedFinancialForm } from './enhanced-financial-form';
 import {
   Tooltip,
@@ -58,7 +59,7 @@ export function FinancialGoalsModal({
   mode,
   editingGoal
 }: FinancialGoalsModalProps) {
-  const [goals, setGoals] = useState<FinancialGoal[]>(initialGoals);
+  const [goals, setGoals] = useState<FinancialGoal[]>(initialGoals || []);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<'simple' | 'detailed'>('detailed');
@@ -84,7 +85,7 @@ export function FinancialGoalsModal({
 
   // Sync internal goals state with initialGoals prop
   useEffect(() => {
-    setGoals(initialGoals);
+    setGoals(initialGoals || []);
   }, [initialGoals]);
 
   // Reset modal state when closed
@@ -105,6 +106,21 @@ export function FinancialGoalsModal({
       setCustomFields(editingGoal.customFields || {});
       setFormMode('detailed'); // Always show detailed for editing
       setPlanningMode('goals');
+    } else if (mode === 'create') {
+      // Create mode - show the enhanced financial form
+      setShowCreateForm(true);
+      setFormMode('detailed');
+      setPlanningMode('goals');
+      // Initialize with default goal data
+      setFormData({
+        title: '',
+        description: '',
+        targetAmount: 0,
+        currentAmount: 0,
+        deadline: '',
+        calculationMethod: 'detailed-breakdown',
+        isActive: true
+      });
     } else if (mode === 'planning') {
       // Direct planning mode - skip goal management
       setPlanningMode('direct');
@@ -515,7 +531,7 @@ export function FinancialGoalsModal({
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <DollarSign className="w-4 h-4" />
-            Financial Goals ({goals.length})
+            Financial Goals ({safeAccess(goals, 'length', 0)})
           </h3>
           <Button 
             variant="outline" 
@@ -530,14 +546,14 @@ export function FinancialGoalsModal({
           </Button>
         </div>
 
-        {goals.length === 0 ? (
+        {safeAccess(goals, 'length', 0) === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No financial goals yet. Create your first one!</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {goals.map((goal) => {
+            {(goals || []).map((goal) => {
               const progress = calculateProgress(goal);
               return (
                 <Card key={goal.id} className="p-3 hover:shadow-md transition-shadow">

@@ -5,6 +5,10 @@ import { getSession } from '@/lib/auth/session'
 import { getUserPreferences } from '@/lib/actions/user-settings'
 import { SettingsLayout } from '@/components/settings/settings-layout'
 import { Button } from '@/components/ui/button'
+import { db } from '@/lib/db/drizzle'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { ComponentUser } from '@/types/user'
 
 export default async function SettingsPage() {
   const session = await getSession()
@@ -13,7 +17,13 @@ export default async function SettingsPage() {
     redirect('/sign-in')
   }
   
-  const user = session.user
+  // Fetch complete user data from database
+  const userData = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)
+  if (!userData[0]) {
+    redirect('/sign-in')
+  }
+  
+  const user = userData[0]
   const preferences = await getUserPreferences()
 
   return (
@@ -41,7 +51,7 @@ export default async function SettingsPage() {
           <p className="text-muted-foreground">Manage your account settings and preferences</p>
         </div>
         
-        <SettingsLayout user={user} preferences={preferences} />
+        <SettingsLayout user={user as ComponentUser} preferences={preferences} />
       </div>
     </div>
   )

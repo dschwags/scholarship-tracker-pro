@@ -37,6 +37,8 @@ export const users = pgTable('users', {
   zipCode: varchar('zip_code', { length: 10 }),
   country: varchar('country', { length: 100 }).default('United States'),
   educationLevel: educationLevelEnum('education_level'),
+  educationalStatus: varchar('educational_status', { length: 50 }),
+  educationalDescription: text('educational_description'),
   gpa: decimal('gpa', { precision: 3, scale: 2 }),
   graduationYear: integer('graduation_year'),
   school: varchar('school', { length: 200 }),

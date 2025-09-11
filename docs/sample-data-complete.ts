@@ -117,9 +117,9 @@ export const CALCULATED_STATS = {
     inProgress: 3
   },
   funding: {
-    won: 12000,
-    potential: 75500,
-    total: 87500
+    won: 0,
+    potential: 0,
+    total: 0
   },
   successRate: 50, // 1 awarded out of 2 completed applications
   completionData: {

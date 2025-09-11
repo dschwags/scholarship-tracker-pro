@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { 
   updateUserProfile, 
@@ -21,15 +22,28 @@ import {
 } from '@/lib/actions/user-settings'
 import { getPasswordRequirements } from '@/lib/utils/password-validation'
 import { UserPreferences } from '@/lib/types/user-preferences'
-// import { DeleteAccountModal } from './delete-account-modal'
+import { ComponentUser } from '@/types/user'
+import { DeleteAccountModal } from './delete-account-modal'
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   bio: z.string().max(500, 'Bio must be under 500 characters').optional(),
-  gpa: z.number().min(0).max(4.0).optional().or(z.literal('')),
-  graduationYear: z.number().min(2020).max(2035).optional().or(z.literal('')),
+  phone: z.string().max(20, 'Phone number too long').optional(),
+  gpa: z.string().optional().refine((val) => {
+    if (!val || val === '') return true
+    const num = parseFloat(val)
+    return !isNaN(num) && num >= 0 && num <= 4.0
+  }, 'GPA must be between 0 and 4.0'),
+  graduationYear: z.string().optional().refine((val) => {
+    if (!val || val === '') return true
+    const num = parseInt(val)
+    return !isNaN(num) && num >= 2020 && num <= 2035
+  }, 'Graduation year must be between 2020 and 2035'),
   school: z.string().max(200, 'School name too long').optional(),
   major: z.string().max(100, 'Major too long').optional(),
+  educationLevel: z.string().max(50, 'Education level too long').optional(),
+  educationalStatus: z.string().max(50, 'Educational status too long').optional(),
+  educationalDescription: z.string().max(500, 'Educational description must be under 500 characters').optional(),
 })
 
 const passwordSchema = z.object({
@@ -56,16 +70,7 @@ type PasswordForm = z.infer<typeof passwordSchema>
 type EmailForm = z.infer<typeof emailSchema>
 
 interface AccountSettingsProps {
-  user: {
-    id: number
-    name?: string | null
-    email: string
-    role: string
-    gpa?: number | null
-    graduationYear?: number | null
-    school?: string | null
-    major?: string | null
-  }
+  user: ComponentUser
   preferences: UserPreferences | null
 }
 
@@ -85,10 +90,14 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
     defaultValues: {
       name: user.name || '',
       bio: preferences?.profile?.bio || '',
+      phone: user.phone || '',
       gpa: user.gpa || '',
-      graduationYear: user.graduationYear || '',
+      graduationYear: user.graduationYear ? String(user.graduationYear) : '',
       school: user.school || '',
       major: user.major || '',
+      educationLevel: user.educationLevel || '',
+      educationalStatus: user.educationalStatus || '',
+      educationalDescription: user.educationalDescription || '',
     }
   })
 
@@ -113,10 +122,14 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
     startTransition(async () => {
       const result = await updateUserProfile({
         name: data.name,
-        gpa: data.gpa === '' ? undefined : Number(data.gpa),
-        graduationYear: data.graduationYear === '' ? undefined : Number(data.graduationYear),
+        phone: data.phone || undefined,
+        gpa: (data.gpa && data.gpa !== '') ? parseFloat(data.gpa) : undefined,
+        graduationYear: (data.graduationYear && data.graduationYear !== '') ? parseInt(data.graduationYear) : undefined,
         school: data.school || undefined,
         major: data.major || undefined,
+        educationLevel: data.educationLevel || undefined,
+        educationalStatus: data.educationalStatus || undefined,
+        educationalDescription: data.educationalDescription || undefined,
       })
       
       setMessage({
@@ -225,6 +238,23 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
               </div>
 
               <div>
+                <Label htmlFor="phone">Phone Number <span className="text-muted-foreground">(Optional)</span></Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  maxLength={20}
+                  placeholder="Enter your phone number"
+                  {...profileForm.register('phone')}
+                  disabled={isPending}
+                />
+                {profileForm.formState.errors.phone && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {profileForm.formState.errors.phone.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <Label htmlFor="gpa">GPA</Label>
                 <Input
                   id="gpa"
@@ -233,12 +263,37 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
                   min="0"
                   max="4.0"
                   placeholder="3.75"
-                  {...profileForm.register('gpa', { valueAsNumber: true })}
+                  {...profileForm.register('gpa')}
                   disabled={isPending}
                 />
                 {profileForm.formState.errors.gpa && (
                   <p className="text-sm text-red-600 mt-1">
                     {profileForm.formState.errors.gpa.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="educationLevel">Education Level</Label>
+                <Select
+                  value={profileForm.watch('educationLevel') || ''}
+                  onValueChange={(value) => profileForm.setValue('educationLevel', value)}
+                  disabled={isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your education level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high_school">High School</SelectItem>
+                    <SelectItem value="undergraduate">Undergraduate</SelectItem>
+                    <SelectItem value="graduate">Graduate</SelectItem>
+                    <SelectItem value="doctoral">Doctoral</SelectItem>
+                    <SelectItem value="post_doctoral">Post-Doctoral</SelectItem>
+                  </SelectContent>
+                </Select>
+                {profileForm.formState.errors.educationLevel && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {profileForm.formState.errors.educationLevel.message}
                   </p>
                 )}
               </div>
@@ -266,7 +321,7 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
                   min="2020"
                   max="2035"
                   placeholder="2025"
-                  {...profileForm.register('graduationYear', { valueAsNumber: true })}
+                  {...profileForm.register('graduationYear')}
                   disabled={isPending}
                 />
                 {profileForm.formState.errors.graduationYear && (
@@ -290,6 +345,69 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Educational Status Section */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Educational Information</h3>
+              
+              <div>
+                <Label htmlFor="educationalStatus">Educational Status</Label>
+                <Select
+                  value={profileForm.watch('educationalStatus') || ''}
+                  onValueChange={(value) => {
+                    profileForm.setValue('educationalStatus', value)
+                    // Clear description if not one of the options that need specification
+                    if (!['other', 'currently_enrolled', 'accepted_planning'].includes(value)) {
+                      profileForm.setValue('educationalDescription', '')
+                    }
+                  }}
+                  disabled={isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your educational status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="currently_enrolled">Currently enrolled (specify school below)</SelectItem>
+                    <SelectItem value="accepted_planning">Accepted/Planning to attend (specify school below)</SelectItem>
+                    <SelectItem value="applying_multiple">Applying to multiple schools</SelectItem>
+                    <SelectItem value="community_college">Community college planning 4-year transfer</SelectItem>
+                    <SelectItem value="military_veteran">Military/Veteran pursuing education</SelectItem>
+                    <SelectItem value="adult_learner">Adult learner/Returning to school</SelectItem>
+                    <SelectItem value="funding_goal">Working toward specific funding goal</SelectItem>
+                    <SelectItem value="exploring_options">Exploring options to maximize scholarships</SelectItem>
+                    <SelectItem value="other">Other (please describe)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {profileForm.formState.errors.educationalStatus && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {profileForm.formState.errors.educationalStatus.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Educational Description - show for options that need specification */}
+              {(profileForm.watch('educationalStatus') === 'other' || 
+                profileForm.watch('educationalStatus') === 'currently_enrolled' || 
+                profileForm.watch('educationalStatus') === 'accepted_planning') && (
+                <div>
+                  <Label htmlFor="educationalDescription">Please describe your educational situation</Label>
+                  <Textarea
+                    id="educationalDescription"
+                    {...profileForm.register('educationalDescription')}
+                    placeholder={profileForm.watch('educationalStatus') === 'other' 
+                      ? "Describe your current educational status or goals..." 
+                      : "Specify the school name and any additional details..."}
+                    disabled={isPending}
+                    rows={3}
+                  />
+                  {profileForm.formState.errors.educationalDescription && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {profileForm.formState.errors.educationalDescription.message}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -551,16 +669,12 @@ export function AccountSettings({ user, preferences }: AccountSettingsProps) {
                 Permanently delete your account and all associated data
               </p>
             </div>
-            <Button variant="destructive" size="sm" disabled>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Account (Coming Soon)
-            </Button>
-            {/* <DeleteAccountModal>
+            <DeleteAccountModal>
               <Button variant="destructive" size="sm">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Account
               </Button>
-            </DeleteAccountModal> */}
+            </DeleteAccountModal>
           </div>
         </CardContent>
       </Card>

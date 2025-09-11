@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraduationCap, Loader2, Users, UserCheck, ShieldCheck } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { GraduationCap, Loader2, Users, UserCheck, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { signIn, signUp } from '@/app/(login)/actions';
 import { ActionState } from '@/lib/auth/middleware';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,8 @@ export function EnhancedLogin({ mode = 'signin' }: { mode?: 'signin' | 'signup' 
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
   const [selectedRole, setSelectedRole] = useState('student');
+  const [showPassword, setShowPassword] = useState(false);
+  const [educationalStatus, setEducationalStatus] = useState('');
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     mode === 'signin' ? signIn : signUp,
     { error: '' }
@@ -35,6 +38,26 @@ export function EnhancedLogin({ mode = 'signin' }: { mode?: 'signin' | 'signup' 
     counselor: 'Guide students and manage scholarship programs',
     admin: 'Full system administration access',
   };
+
+  // Educational status options with conditional logic
+  const educationalStatusOptions = [
+    { value: 'currently_enrolled', label: 'Currently enrolled (specify school below)', showInstitution: true, institutionLabel: 'Current Institution', placeholder: 'Enter your current school or university name' },
+    { value: 'accepted_planning', label: 'Accepted/Planning to attend (specify school below)', showInstitution: true, institutionLabel: 'Future Institution', placeholder: 'Enter the school you\'ll be attending' },
+    { value: 'applying_multiple', label: 'Applying to multiple schools', showInstitution: false },
+    { value: 'community_college', label: 'Community college planning 4-year transfer', showInstitution: true, institutionLabel: 'Current Institution', placeholder: 'Enter your current community college name' },
+    { value: 'military_veteran', label: 'Military/Veteran pursuing education', showInstitution: false },
+    { value: 'adult_learner', label: 'Adult learner/Returning to school', showInstitution: false },
+    { value: 'funding_goal', label: 'Working toward specific funding goal', showInstitution: false },
+    { value: 'exploring_options', label: 'Exploring options to maximize scholarships', showInstitution: false },
+    { value: 'other', label: 'Other (please describe)', showInstitution: false, showDescription: true }
+  ];
+
+  // Helper functions for conditional logic
+  const getSelectedOption = () => educationalStatusOptions.find(opt => opt.value === educationalStatus);
+  const shouldShowInstitution = () => getSelectedOption()?.showInstitution || false;
+  const shouldShowDescription = () => getSelectedOption()?.showDescription || false;
+  const getInstitutionLabel = () => getSelectedOption()?.institutionLabel || 'School/University';
+  const getInstitutionPlaceholder = () => getSelectedOption()?.placeholder || 'Enter your school or university';
 
   return (
     <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -148,19 +171,32 @@ export function EnhancedLogin({ mode = 'signin' }: { mode?: 'signin' | 'signup' 
                 <Label htmlFor="password" className="block text-sm font-medium">
                   Password
                 </Label>
-                <div className="mt-1">
+                <div className="mt-1 relative">
                   <Input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                     defaultValue={state.password}
                     required
                     minLength={8}
                     maxLength={100}
-                    className="rounded-lg"
+                    className="rounded-lg pr-10"
                     placeholder="Enter your password"
                   />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
                 {mode === 'signup' && (
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -181,6 +217,65 @@ export function EnhancedLogin({ mode = 'signin' }: { mode?: 'signin' | 'signup' 
 
               {mode === 'signup' && selectedRole === 'student' && (
                 <>
+                  {/* Educational Status */}
+                  <div>
+                    <Label htmlFor="educationalStatus" className="block text-sm font-medium">
+                      Educational Status
+                    </Label>
+                    <div className="mt-1">
+                      <Select name="educationalStatus" value={educationalStatus} onValueChange={setEducationalStatus}>
+                        <SelectTrigger className="rounded-lg">
+                          <SelectValue placeholder="Select your educational situation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {educationalStatusOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Conditional Institution Field */}
+                  {shouldShowInstitution() && (
+                    <div>
+                      <Label htmlFor="school" className="block text-sm font-medium">
+                        {getInstitutionLabel()}
+                      </Label>
+                      <div className="mt-1">
+                        <Input
+                          id="school"
+                          name="school"
+                          type="text"
+                          maxLength={200}
+                          className="rounded-lg"
+                          placeholder={getInstitutionPlaceholder()}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Conditional Description Field for 'Other' */}
+                  {shouldShowDescription() && (
+                    <div>
+                      <Label htmlFor="educationalDescription" className="block text-sm font-medium">
+                        Please describe your situation
+                      </Label>
+                      <div className="mt-1">
+                        <Textarea
+                          id="educationalDescription"
+                          name="educationalDescription"
+                          maxLength={500}
+                          className="rounded-lg"
+                          placeholder="Describe your educational situation or funding goal"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Education Level */}
                   <div>
                     <Label htmlFor="educationLevel" className="block text-sm font-medium">
@@ -199,23 +294,6 @@ export function EnhancedLogin({ mode = 'signin' }: { mode?: 'signin' | 'signup' 
                           <SelectItem value="post_doctoral">Post-Doctoral</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-
-                  {/* School */}
-                  <div>
-                    <Label htmlFor="school" className="block text-sm font-medium">
-                      School/University
-                    </Label>
-                    <div className="mt-1">
-                      <Input
-                        id="school"
-                        name="school"
-                        type="text"
-                        maxLength={200}
-                        className="rounded-lg"
-                        placeholder="Enter your school or university"
-                      />
                     </div>
                   </div>
 

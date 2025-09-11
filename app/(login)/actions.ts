@@ -87,12 +87,14 @@ const signUpSchema = z.object({
   role: z.enum(['student', 'parent', 'counselor', 'admin']).default('student'),
   phone: z.string().optional(),
   educationLevel: z.enum(['high_school', 'undergraduate', 'graduate', 'doctoral', 'post_doctoral']).optional(),
+  educationalStatus: z.enum(['currently_enrolled', 'accepted_planning', 'applying_multiple', 'community_college', 'military_veteran', 'adult_learner', 'funding_goal', 'exploring_options', 'other']).optional(),
+  educationalDescription: z.string().max(500).optional(),
   graduationYear: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined),
   school: z.string().max(200).optional()
 });
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, password, name, role, phone, educationLevel, graduationYear, school } = data;
+  const { email, password, name, role, phone, educationLevel, educationalStatus, educationalDescription, graduationYear, school } = data;
   
   // Validate graduation year if provided
   if (graduationYear && (graduationYear < 2020 || graduationYear > 2040)) {
@@ -126,6 +128,8 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     role: role || 'student',
     phone: phone || null,
     educationLevel: educationLevel || null,
+    educationalStatus: educationalStatus || null,
+    educationalDescription: educationalDescription || null,
     graduationYear: graduationYear || null,
     school: school || null,
     isActive: true,
@@ -155,6 +159,7 @@ export async function signOut() {
   const user = (await getUser()) as User;
   await logActivity(user.id, ActivityType.SIGN_OUT);
   (await cookies()).delete('session');
+  redirect('/'); // Redirect to home page after logout
 }
 
 const updatePasswordSchema = z.object({

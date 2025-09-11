@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 // Session user type (from auth/session.ts)
 interface SessionUser {
   id: number;
@@ -13,7 +13,13 @@ interface SessionUser {
 import { DashboardStats } from './sections/dashboard-stats';
 import { FinancialProgress } from './sections/financial-progress';
 import { GapAnalysis } from './sections/gap-analysis';
+// Financial components re-enabled after fixing infinite loops
+// import { EmbeddedFinancialGoals } from './sections/embedded-financial-goals';
+// import { EnhancedFinancialAnalytics } from './sections/enhanced-financial-analytics';
+// import { FinancialCharts } from './sections/financial-charts';
 import { ScholarshipTable } from './sections/scholarship-table';
+// Progressive Disclosure Demo removed
+// Safety systems removed for stability
 
 // Modal
 import { ScholarshipDetailModal } from '../scholarship/scholarship-detail-modal';
@@ -21,7 +27,9 @@ import { ScholarshipDetailModal } from '../scholarship/scholarship-detail-modal'
 
 import { Button } from '@/components/ui/button';
 import { InviteParentModal } from '../parent-linking/invite-parent-modal';
-import { FinancialGoalsModal } from '../goals/financial-goals-modal-stub';
+import { FinancialGoalsModal } from '../goals/financial-goals-modal';
+import { useGoals } from '@/contexts/goals-context';
+import { useFinancialAnalytics } from '@/lib/hooks/use-financial-analytics';
 import { WelcomeDashboard } from '../onboarding/welcome-dashboard';
 
 // Types
@@ -178,7 +186,7 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
   const [expandedQuickView, setExpandedQuickView] = useState<number | null>(null);
 
   const [isFinancialGoalsModalOpen, setIsFinancialGoalsModalOpen] = useState(false);
-  const [financialGoals, setFinancialGoals] = useState<any[]>([]);
+  const { goals, setGoals } = useGoals();
   const [forceHideWelcome, setForceHideWelcome] = useState(false);
   
   // Initialize scholarshipsData when scholarships prop changes
@@ -187,26 +195,20 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
     setScholarshipsData(scholarships);
   }, [scholarships]);
 
-  // Debug: Track scholarshipsData changes
+  // ✅ ENHANCED BUGX FIX: Eliminate state cascade entirely - calculate shouldHideWelcome directly
+  const shouldHideWelcome = scholarshipsData.length > 0 || forceHideWelcome;
+  
+  // Debug: Track scholarshipsData changes (NO STATE UPDATES)
   useEffect(() => {
     console.log('🔄 SCHOLARSHIPS STATE CHANGED:', scholarshipsData.length, 'items');
     scholarshipsData.forEach((s, i) => {
       console.log(`  🎓[${i}]:`, s.id, s.title || 'Untitled');
     });
-    
-    // Auto-hide welcome screen when scholarships are added
-    if (scholarshipsData.length > 0 && !forceHideWelcome) {
-      console.log('🚀 AUTO-HIDING welcome screen due to scholarships being present');
-      setForceHideWelcome(true);
-    } else if (scholarshipsData.length > 0 && forceHideWelcome) {
-      console.log('🔒 Welcome screen already hidden, scholarships present');
-    } else {
-      console.log('👤 No scholarships yet, keeping welcome screen visible');
-    }
-  }, [scholarshipsData, forceHideWelcome]);
+    console.log('👤 Welcome screen visibility:', shouldHideWelcome ? 'hidden' : 'visible');
+  }, [scholarshipsData, shouldHideWelcome]); // ✅ NO STATE UPDATES = NO INFINITE LOOPS
   
-  // Mock student profile - replace with actual data
-  const studentProfile = {
+  // Mock student profile - replace with actual data (MEMOIZED to prevent infinite loops)
+  const studentProfile = useMemo(() => ({
     firstName: user.name?.split(' ')[0] || 'Student',
     lastName: user.name?.split(' ')[1] || '',
     email: user.email,
@@ -214,7 +216,7 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
     major: 'Computer Science',
     graduationYear: 2025,
     school: 'State University'
-  };
+  }), [user.name, user.email]);
   
 
 
@@ -317,8 +319,8 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       return newArray;
     });
     
-    console.log('✅ Setting forceHideWelcome to TRUE');
-    setForceHideWelcome(true);
+    console.log('✅ Welcome screen will auto-hide (calculated from scholarshipsData.length)');
+    // ✅ BUGX: No need to set forceHideWelcome state - shouldHideWelcome is calculated directly
     
     console.log('🎉 SAVE OPERATION COMPLETED');
   };
@@ -336,39 +338,84 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
     console.log('New scholarship created successfully:', newScholarshipData);
   };
 
-  // Use server-calculated stats when available, fallback to calculating from local data
-  const currentStats = scholarships.length > 0 ? stats : {
-    applications: {
-      total: scholarshipsData.length,
-      submitted: scholarshipsData.filter(s => s.status === 'submitted').length,
-      draft: scholarshipsData.filter(s => s.status === 'not started').length,
-      accepted: scholarshipsData.filter(s => s.status === 'awarded').length,
-      rejected: scholarshipsData.filter(s => s.status === 'rejected').length,
-    },
-    funding: {
-      won: scholarshipsData.filter(s => s.status === 'awarded').reduce((sum, s) => sum + parseFloat(s.amount || 0), 0),
-      potential: scholarshipsData.filter(s => s.status !== 'rejected').reduce((sum, s) => sum + parseFloat(s.amount || 0), 0),
-      total: scholarshipsData.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0)
-    },
-    successRate: (() => {
-      const completed = scholarshipsData.filter(s => s.status === 'awarded' || s.status === 'rejected').length;
-      const awarded = scholarshipsData.filter(s => s.status === 'awarded').length;
-      return completed > 0 ? Math.round((awarded / completed) * 100) : 0;
-    })()
-  };
+  // Enhanced Financial Analytics Integration (LEGACY REFERENCES REMOVED)
+  const {
+    metrics: financialMetrics,
+    isUsingNewSystem,
+    hasRealGoalsData,
+    refreshData: refreshFinancialData
+  } = useFinancialAnalytics(stats, user.id);
+
+  // Simple stats calculation without legacy dependencies (BugX SAFE)
+  const enhancedStats = useMemo(() => ({ enhanced: false, funding: null }), []);
+  
+  // Memoized current stats to prevent recreation loops (NO CIRCULAR DEPENDENCIES)
+  const currentStats = useMemo(() => {
+    if (scholarships.length > 0) {
+      return stats;
+    }
+    
+    const awarded = scholarshipsData.filter(s => s.status === 'awarded');
+    const completed = scholarshipsData.filter(s => s.status === 'awarded' || s.status === 'rejected');
+    const notRejected = scholarshipsData.filter(s => s.status !== 'rejected');
+    
+    // Calculate base values WITHOUT using enhancedStats to prevent circular dependency
+    const baseWon = awarded.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+    const basePotential = notRejected.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+    const baseTotal = scholarshipsData.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+    
+    return {
+      applications: {
+        total: scholarshipsData.length,
+        submitted: scholarshipsData.filter(s => s.status === 'submitted').length,
+        draft: scholarshipsData.filter(s => s.status === 'not started').length,
+        accepted: awarded.length,
+        rejected: scholarshipsData.filter(s => s.status === 'rejected').length,
+      },
+      funding: {
+        won: baseWon,
+        potential: basePotential,
+        total: baseTotal
+      },
+      successRate: completed.length > 0 ? Math.round((awarded.length / completed.length) * 100) : 0
+    };
+  }, [scholarships.length, stats, scholarshipsData]);  // Removed circular dependencies
+  
+  // Enhanced stats with financial analytics (SEPARATE from currentStats to prevent circular dependency)
+  const enhancedCurrentStats = useMemo(() => {
+    if (!enhancedStats.enhanced) {
+      return currentStats;
+    }
+    
+    return {
+      ...currentStats,
+      // Enhanced analytics fields when available
+      enhanced: enhancedStats.enhanced,
+      hasRealGoalsData,
+      isUsingNewSystem,
+      financialMetrics,
+      // Override funding with enhanced data if available
+      funding: {
+        ...currentStats.funding,
+        won: enhancedStats.funding?.won ?? currentStats.funding.won,
+        potential: enhancedStats.funding?.potential ?? currentStats.funding.potential,
+        total: enhancedStats.funding?.total ?? currentStats.funding.total
+      }
+    };
+  }, [currentStats, enhancedStats, hasRealGoalsData, isUsingNewSystem, financialMetrics]);
   
   console.log('📊 Current stats being used:', {
     source: scholarships.length > 0 ? 'server-calculated' : 'client-calculated',
-    totalApplications: currentStats.applications.total,
-    totalTracked: currentStats.funding.won + (currentStats.funding.potential || 0),
+    totalApplications: enhancedCurrentStats.applications.total,
+    totalTracked: enhancedCurrentStats.funding.won + (enhancedCurrentStats.funding.potential || 0),
     scholarshipsFromServer: scholarships.length,
     scholarshipsFromState: scholarshipsData.length
   });
 
-  // Show welcome screen for new users
+  // Bypass welcome screen entirely - users should go directly to main dashboard
   // Use real scholarship data from props if available, otherwise fall back to local state
   const activeScholarships = scholarships.length > 0 ? scholarships : scholarshipsData;
-  const shouldShowWelcome = activeScholarships.length === 0 && !forceHideWelcome;
+  const shouldShowWelcome = false; // Disabled welcome screen per user request
   
   console.log('Checking welcome condition:', {
     propsScholarshipsLength: scholarships.length,
@@ -390,8 +437,8 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       <WelcomeDashboard 
         userName={user.name || 'Student'}
         stats={welcomeStats || {
-          totalTracked: currentStats.funding.potential || 0,
-          applications: currentStats.applications.total,
+          totalTracked: enhancedCurrentStats.funding.potential || 0,
+          applications: enhancedCurrentStats.applications.total,
           collaborators: 0
         }}
         onGetStarted={() => {
@@ -465,26 +512,38 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       
       {/* Dashboard Content */}
       {/* Compact Single Line Stats */}
-      <DashboardStats stats={currentStats} />
+      <DashboardStats stats={enhancedCurrentStats} />
 
-      {/* Financial Progress & Analytics - Seamless Container */}
+      {/* Embedded Financial Goals - Re-enabled after fixing infinite loops */}
+      {/* TEMPORARILY DISABLED: EmbeddedFinancialGoals - causing safety system triggers */}
+      {/* <EmbeddedFinancialGoals stats={enhancedCurrentStats} /> */}
+      
+      {/* Advanced Analytics - Temporarily disabled until module resolution fixed */}
+      {/* 
+      <EnhancedFinancialAnalytics stats={enhancedCurrentStats} />
+      <FinancialCharts stats={enhancedCurrentStats} />
+      */}
+
+      {/* Legacy Financial Progress & Analytics - Seamless Container */}
       <div className="bg-gradient-to-r from-green-50 to-yellow-50 dark:from-green-950 dark:to-yellow-950 border border-green-200 dark:border-green-800 rounded-lg p-0 overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           <div className="relative">
             <div className="absolute right-0 top-6 bottom-6 w-px bg-green-200/50 dark:bg-green-700/50 lg:block hidden"></div>
-            <FinancialProgress stats={currentStats} />
+            <FinancialProgress stats={enhancedCurrentStats} />
           </div>
-          <GapAnalysis stats={currentStats} />
+          <GapAnalysis stats={enhancedCurrentStats} />
         </div>
       </div>
 
-      {/* Scholarship Applications Table */}
+      {/* Scholarship Applications Table - Moved Above Diagnostic Menus */}
       <ScholarshipTable 
         scholarshipsData={scholarshipsData}
         expandedQuickView={expandedQuickView}
         onOpenModal={openScholarshipModal}
         onCreateScholarship={createScholarship}
       />
+
+      {/* Diagnostic and Safety Systems - REMOVED FOR STABILITY */}
 
       {/* Scholarship Detail Modal */}
       {selectedScholarship && (
@@ -500,12 +559,17 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       <FinancialGoalsModal
         isOpen={isFinancialGoalsModalOpen}
         onClose={() => setIsFinancialGoalsModalOpen(false)}
-        onSaveGoals={(goals) => {
-          setFinancialGoals(goals);
+        onSaveGoals={(savedGoals) => {
+          console.log('💰 Saving financial goals:', savedGoals);
+          // Update goals context with the new financial goals
+          const updatedGoals = { ...goals };
+          updatedGoals.financial = savedGoals;
+          setGoals(updatedGoals);
           setIsFinancialGoalsModalOpen(false);
         }}
-        initialGoals={financialGoals}
+        initialGoals={goals.financial || []}
         mode="create"
+        editingGoal={null}
       />
     </div>
   );

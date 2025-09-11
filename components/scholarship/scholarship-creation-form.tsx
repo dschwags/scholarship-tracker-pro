@@ -106,6 +106,9 @@ interface NewScholarshipData {
   organizationUrl: string;
   applicationUrl: string;
   description: string;
+  essayTopic?: string;
+  essayLink?: string;
+  financialDocsLink?: string;
   contacts: Contact[];
   documentRequirements: Requirement[];
   academicRequirements: Requirement[];
@@ -167,6 +170,9 @@ const initialFormData: NewScholarshipData = {
   organizationUrl: '',
   applicationUrl: '',
   description: '',
+  essayTopic: '',
+  essayLink: '',
+  financialDocsLink: '',
   contacts: [],
   documentRequirements: getDefaultDocumentRequirements(),
   academicRequirements: getDefaultAcademicRequirements(),
@@ -477,10 +483,10 @@ export function ScholarshipCreationForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Collapsible How-To Guide */}
           <Card className="border-blue-200 bg-blue-50/50">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2 text-blue-800">
                   <HelpCircle className="w-4 h-4" />
@@ -559,9 +565,9 @@ export function ScholarshipCreationForm({
                 Basic Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2">
               {/* Title */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="title">
                   Scholarship Title <span className="text-red-500">*</span>
                 </Label>
@@ -601,8 +607,8 @@ export function ScholarshipCreationForm({
               </div>
 
               {/* Amount and Category Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="amount">
                     Amount ($) <span className="text-red-500">*</span>
                   </Label>
@@ -748,15 +754,50 @@ export function ScholarshipCreationForm({
                 )}
               </div>
 
+              {/* Essay Topic Field */}
+              <div className="space-y-1">
+                <Label htmlFor="essayTopic">Essay Topic/Prompt</Label>
+                <Input
+                  id="essayTopic"
+                  value={formData.essayTopic || ''}
+                  onChange={(e) => handleFieldChange('essayTopic', e.target.value)}
+                  placeholder="e.g., Describe your leadership experience and future goals..."
+                />
+              </div>
+
+              {/* Essay Link Field */}
+              <div className="space-y-1">
+                <Label htmlFor="essayLink">Essay Document Link (Optional)</Label>
+                <Input
+                  id="essayLink"
+                  type="url"
+                  value={formData.essayLink || ''}
+                  onChange={(e) => handleFieldChange('essayLink', e.target.value)}
+                  placeholder="https://docs.google.com/document/... (for reference only)"
+                />
+              </div>
+
+              {/* Financial Documents Link */}
+              <div className="space-y-1">
+                <Label htmlFor="financialDocsLink">Financial Documents Link (Optional)</Label>
+                <Input
+                  id="financialDocsLink"
+                  type="url"
+                  value={formData.financialDocsLink || ''}
+                  onChange={(e) => handleFieldChange('financialDocsLink', e.target.value)}
+                  placeholder="https://drive.google.com/folder/... (for reference only)"
+                />
+              </div>
+
               {/* Description */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="description">Description (Optional)</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
                   placeholder="Brief description of the scholarship requirements, eligibility criteria, or notes..."
-                  rows={3}
+                  rows={2}
                 />
               </div>
             </CardContent>
@@ -823,8 +864,8 @@ export function ScholarshipCreationForm({
                       </div>
                     </CardHeader>
                     {contact.isExpanded && (
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 gap-3">
+                      <CardContent className="pt-0 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-xs">Name</Label>
                             <Input
@@ -883,7 +924,7 @@ export function ScholarshipCreationForm({
           </Card>
 
           {/* Requirements Sections */}
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {/* Document Requirements */}
             <Card>
               <CardHeader className="pb-3">
@@ -918,9 +959,9 @@ export function ScholarshipCreationForm({
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 {formData.documentRequirements.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
+                  <p className="text-sm text-gray-500 text-center py-2">
                     No document requirements added yet.
                   </p>
                 ) : (
@@ -1258,58 +1299,64 @@ export function ScholarshipCreationForm({
                 ) : (
                   <div className="space-y-2">
                     {formData.communicationRequirements.map((req) => (
-                      <div key={req.id} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center gap-3 flex-1">
-                          <input
-                            type="checkbox"
-                            checked={req.isCompleted}
-                            onChange={(e) => updateRequirement('communicationRequirements', req.id, 'isCompleted', e.target.checked)}
-                            className="rounded"
-                          />
-                          <div className="flex items-center gap-2 max-w-[200px]">
-                            <Input
-                              value={req.label}
-                              onChange={(e) => updateRequirement('communicationRequirements', req.id, 'label', e.target.value)}
-                              className="h-7 text-sm border-none p-1 bg-transparent"
+                      <div key={req.id} className="border rounded p-2 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={req.isCompleted}
+                              onChange={(e) => updateRequirement('communicationRequirements', req.id, 'isCompleted', e.target.checked)}
+                              className="rounded"
                             />
+                            <div className="flex items-center gap-2 max-w-[200px]">
+                              <Input
+                                value={req.label}
+                                onChange={(e) => updateRequirement('communicationRequirements', req.id, 'label', e.target.value)}
+                                className="h-7 text-sm border-none p-1 bg-transparent"
+                              />
+                            </div>
+                            <label className="flex items-center gap-1 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={req.isRequired}
+                                onChange={(e) => updateRequirement('communicationRequirements', req.id, 'isRequired', e.target.checked)}
+                                className="rounded w-3 h-3"
+                              />
+                              Required
+                            </label>
                           </div>
-                          {req.label.toLowerCase().includes('interview') && (
-                            <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeRequirement('communicationRequirements', req.id)}
+                            className="text-red-500 hover:text-red-600 h-7 w-7 p-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        {req.label.toLowerCase().includes('interview') && (
+                          <div className="flex items-center gap-2 ml-6">
+                            <div className="flex items-center gap-1">
+                              <Label className="text-xs min-w-fit">Date:</Label>
                               <Input
                                 type="date"
                                 value={req.interviewDate || ''}
                                 onChange={(e) => updateRequirement('communicationRequirements', req.id, 'interviewDate', e.target.value)}
-                                className="h-7 text-xs w-32"
-                                placeholder="Interview date"
+                                className="h-8 text-sm w-36"
                               />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Label className="text-xs min-w-fit">Time:</Label>
                               <Input
                                 type="time"
                                 value={req.interviewTime || ''}
                                 onChange={(e) => updateRequirement('communicationRequirements', req.id, 'interviewTime', e.target.value)}
-                                className="h-7 text-xs w-24"
-                                placeholder="Time"
+                                className="h-8 text-sm w-28"
                               />
                             </div>
-                          )}
-                          <label className="flex items-center gap-1 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={req.isRequired}
-                              onChange={(e) => updateRequirement('communicationRequirements', req.id, 'isRequired', e.target.checked)}
-                              className="rounded w-3 h-3"
-                            />
-                            Required
-                          </label>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeRequirement('communicationRequirements', req.id)}
-                          className="text-red-500 hover:text-red-600 h-7 w-7 p-0"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

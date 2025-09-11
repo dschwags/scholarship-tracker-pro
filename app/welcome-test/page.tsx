@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { WelcomeDashboard } from '@/components/onboarding/welcome-dashboard';
-import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal-stub';
+import { FinancialGoalsModal } from '@/components/goals/financial-goals-modal';
 import { ScholarshipDetailModal } from '@/components/scholarship/scholarship-detail-modal';
 
 export default function WelcomeTestPage() {
@@ -143,11 +143,10 @@ export default function WelcomeTestPage() {
             setIsFinancialGoalsModalOpen(false);
           }}
           onSaveGoals={(goals) => {
-            console.log('TEST: Saving financial goals:', goals);
-            setFinancialGoals(goals);
+            console.log('TEST: Financial goals saved:', goals);
             setIsFinancialGoalsModalOpen(false);
           }}
-          initialGoals={financialGoals}
+          initialGoals={[]}
           mode="create"
         />
 

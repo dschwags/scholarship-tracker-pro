@@ -254,7 +254,7 @@ export class DataImportService {
       // Optional fields
       const status = this.getColumnValue(values, 'Status', options.columnMapping, -1);
       if (status) {
-        scholarship.applicationStatus = status as any;
+        scholarship.applicationStatus = status;
       }
 
       return scholarship;

@@ -17,15 +17,25 @@ export async function GET() {
     return Response.json(user);
   } catch (error) {
     console.error('🚨 /api/user: Error fetching user:', error);
-    // If JWT is invalid, clear the session cookie
-    if (error instanceof Error && error.message.includes('Invalid Compact JWS')) {
-      console.log('🧽 /api/user: Clearing invalid JWT session cookie');
-      (await cookies()).set('session', '', {
-        expires: new Date(0),
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-      });
+    
+    // Only clear session for specific JWT expiration/corruption errors
+    // Don't clear for temporary database/processing errors  
+    if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+      if (errorMessage.includes('jwt expired') || 
+          errorMessage.includes('invalid compact jws') || 
+          errorMessage.includes('invalid signature')) {
+        console.log('🧽 /api/user: Clearing invalid/expired JWT session cookie');
+        (await cookies()).set('session', '', {
+          expires: new Date(0),
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+        });
+      } else {
+        // Log but preserve session for temporary errors (DB issues, network, etc.)
+        console.log('⚠️ /api/user: Temporary error, preserving session');
+      }
     }
     console.log('📝 /api/user: Returning null due to error');
     return Response.json(null);

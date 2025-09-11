@@ -1,17 +1,13 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Plus, X, DollarSign, Calculator, AlertCircle } from 'lucide-react';
-import { 
+import { Plus, X } from 'lucide-react';
+import { safeAccess } from '@/components/bugx/BugX-Schema-Framework';
+import {
   FinancialGoal,
-  ScholarshipFunding,
-  FUNDING_SCOPES,
   CALCULATION_METHODS,
   HOUSING_TYPES,
   TRANSPORTATION_TYPES,
@@ -66,10 +62,23 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const updateExpense = (section: string, field: string, value: any) => {
+    const currentSection = formData.expenses?.[section as keyof typeof formData.expenses] || {};
+    
+    // Ensure the base expenses structure exists
+    const baseExpenses = formData.expenses || {
+      tuition: { amount: 0 },
+      roomAndBoard: { amount: 0, housingType: 'dorm' as const },
+      books: { amount: 0 },
+      transportation: { amount: 0, type: 'car' as const },
+      personal: { amount: 0 },
+      fees: { amount: 0 },
+      other: { amount: 0 }
+    };
+    
     const newExpenses = {
-      ...formData.expenses,
+      ...baseExpenses,
       [section]: {
-        ...formData.expenses?.[section],
+        ...currentSection,
         [field]: value
       }
     };
@@ -77,21 +86,41 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const updateFunding = (section: string, field: string, value: any) => {
-    const newFunding = { ...formData.fundingSources };
+    const baseFunding = formData.fundingSources || {
+      federalAid: {
+        pellGrant: { amount: 0, awarded: false, renewable: false },
+        subsidizedLoans: { amount: 0 },
+        unsubsidizedLoans: { amount: 0 },
+        workStudy: { amount: 0 },
+        other: { amount: 0 }
+      },
+      stateGrants: {
+        needBased: { amount: 0, renewable: false },
+        meritBased: { amount: 0, renewable: false },
+        other: { amount: 0 }
+      },
+      scholarships: [],
+      familyContribution: { amount: 0 },
+      employment: { amount: 0, jobType: 'part-time' as const }
+    };
+    
+    const newFunding = { ...baseFunding };
     
     if (field === '') {
-      // Direct assignment for arrays like scholarships
-      newFunding[section] = value;
+      // Direct assignment for arrays like scholarships - use type assertion
+      (newFunding as any)[section] = value;
     } else if (typeof value === 'object' && value.amount !== undefined) {
       // Handle nested objects like federalAid.pellGrant
-      newFunding[section] = {
-        ...newFunding[section],
+      const currentFundingSection = (newFunding as any)[section] || {};
+      (newFunding as any)[section] = {
+        ...currentFundingSection,
         [field]: value
       };
     } else {
       // Handle simple field updates
-      newFunding[section] = {
-        ...newFunding[section],
+      const currentFundingSection = (newFunding as any)[section] || {};
+      (newFunding as any)[section] = {
+        ...currentFundingSection,
         [field]: value
       };
     }
@@ -100,7 +129,8 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const addExpenseEntry = (section: string) => {
-    const currentEntries = formData.expenses?.[section]?.entries || [];
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
     const newEntry = {
       amount: 0,
       type: section === 'transportation' ? 'car' : 'other',
@@ -111,20 +141,23 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const removeExpenseEntry = (section: string, index: number) => {
-    const currentEntries = formData.expenses?.[section]?.entries || [];
-    const newEntries = currentEntries.filter((_, i) => i !== index);
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
+    const newEntries = currentEntries.filter((_: any, i: number) => i !== index);
     updateExpense(section, 'entries', newEntries);
   };
 
   const updateExpenseEntry = (section: string, index: number, field: string, value: any) => {
-    const currentEntries = formData.expenses?.[section]?.entries || [];
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
     const newEntries = [...currentEntries];
     newEntries[index] = { ...newEntries[index], [field]: value };
     updateExpense(section, 'entries', newEntries);
   };
 
   const addFundingEntry = (section: string) => {
-    const currentEntries = formData.fundingSources?.[section]?.entries || [];
+    const currentSection = safeAccess(formData.fundingSources, section as keyof typeof formData.fundingSources, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
     const newEntry = {
       amount: 0,
       source: '',
@@ -135,13 +168,15 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const removeFundingEntry = (section: string, index: number) => {
-    const currentEntries = formData.fundingSources?.[section]?.entries || [];
-    const newEntries = currentEntries.filter((_, i) => i !== index);
+    const currentSection = safeAccess(formData.fundingSources, section as keyof typeof formData.fundingSources, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
+    const newEntries = currentEntries.filter((_: any, i: number) => i !== index);
     updateFunding(section, 'entries', newEntries);
   };
 
   const updateFundingEntry = (section: string, index: number, field: string, value: any) => {
-    const currentEntries = formData.fundingSources?.[section]?.entries || [];
+    const currentSection = safeAccess(formData.fundingSources, section as keyof typeof formData.fundingSources, {});
+    const currentEntries = safeAccess(currentSection, 'entries', []);
     const newEntries = [...currentEntries];
     newEntries[index] = { ...newEntries[index], [field]: value };
     updateFunding(section, 'entries', newEntries);
@@ -164,8 +199,10 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   // Render template-specific expenses
   const renderTemplateExpenses = () => {
     return templateConfig.expenses.map((expenseConfig) => {
-      const { key, title, placeholder, description, allowMultiple } = expenseConfig;
-      const currentValue = formData.expenses?.[key]?.amount || 0;
+      const { key, title, placeholder, description } = expenseConfig;
+      const allowMultiple = safeAccess(expenseConfig, 'allowMultiple', false);
+      const currentSection = safeAccess(formData.expenses, key, {});
+      const currentValue = safeAccess(currentSection, 'amount', 0);
       
       return (
         <div key={key} className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
@@ -204,9 +241,9 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
             </div>
             
             {/* Additional entries for expenses that allow multiple */}
-            {allowMultiple && formData.expenses?.[key]?.entries && (
+            {allowMultiple && safeAccess(currentSection, 'entries', []).length > 0 && (
               <div className="space-y-1">
-                {formData.expenses[key].entries.map((entry: any, index: number) => (
+                {safeAccess(currentSection, 'entries', []).map((entry: any, index: number) => (
                   <div key={index} className="flex items-center gap-2 ml-4">
                     <div className="relative">
                       <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -392,232 +429,6 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                   <span>{formatCurrency(formData.totalExpenses || 0)}</span>
                 </div>
               </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Amount:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="2000"
-                          value={formData.expenses?.transportation?.amount || 0}
-                          onChange={(e) => updateExpense('transportation', 'amount', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Type:</Label>
-                      <Select 
-                        value={formData.expenses?.transportation?.type || 'car'} 
-                        onValueChange={(value) => updateExpense('transportation', 'type', value)}
-                      >
-                        <SelectTrigger className="w-44">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(TRANSPORTATION_TYPES).map(([key, type]) => (
-                            <SelectItem key={key} value={key}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addExpenseEntry('transportation')}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Add More
-                    </Button>
-                  </div>
-
-                  {/* Additional Transportation Entries */}
-                  {formData.expenses?.transportation?.entries?.map((entry, index) => (
-                    <div key={index} className="ml-4 p-2 bg-gray-50 dark:bg-gray-700 rounded border-l-2 border-blue-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm min-w-fit">Amount:</Label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                            <Input
-                              type="number"
-                              className="w-24 pl-6"
-                              placeholder="0"
-                              value={entry.amount || 0}
-                              onChange={(e) => updateExpenseEntry('transportation', index, 'amount', parseFloat(e.target.value) || 0)}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm min-w-fit">Type:</Label>
-                          <Select 
-                            value={entry.type || 'car'} 
-                            onValueChange={(value) => updateExpenseEntry('transportation', index, 'type', value)}
-                          >
-                            <SelectTrigger className="w-44">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(TRANSPORTATION_TYPES).map(([key, type]) => (
-                                <SelectItem key={key} value={key}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeExpenseEntry('transportation', index)}
-                          className="text-red-600"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm min-w-fit">Description:</Label>
-                        <Input
-                          className="w-48"
-                          placeholder="e.g., Monthly bus pass"
-                          value={entry.description || ''}
-                          onChange={(e) => updateExpenseEntry('transportation', index, 'description', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Personal Expenses */}
-              <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">👤 Personal Expenses</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Amount:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="3000"
-                          value={formData.expenses?.personal?.amount || 0}
-                          onChange={(e) => updateExpense('personal', 'amount', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Living Level:</Label>
-                      <Select 
-                        value={formData.expenses?.personal?.livingLevel || 'moderate'} 
-                        onValueChange={(value) => updateExpense('personal', 'livingLevel', value)}
-                      >
-                        <SelectTrigger className="w-44">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(COST_OF_LIVING_LEVELS).map(([key, level]) => (
-                            <SelectItem key={key} value={key}>
-                              {level}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Other Expenses */}
-              <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">💼 Other Expenses</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Amount:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="1500"
-                          value={formData.expenses?.other?.amount || 0}
-                          onChange={(e) => updateExpense('other', 'amount', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Description:</Label>
-                      <Input
-                        className="w-44"
-                        placeholder="Books, supplies, etc."
-                        value={formData.expenses?.other?.description || ''}
-                        onChange={(e) => updateExpense('other', 'description', e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addExpenseEntry('other')}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Add More
-                    </Button>
-                  </div>
-
-                  {/* Additional Other Entries */}
-                  {formData.expenses?.other?.entries?.map((entry, index) => (
-                    <div key={index} className="ml-4 p-2 bg-gray-50 dark:bg-gray-700 rounded border-l-2 border-blue-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm min-w-fit">Amount:</Label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                            <Input
-                              type="number"
-                              className="w-24 pl-6"
-                              placeholder="0"
-                              value={entry.amount || 0}
-                              onChange={(e) => updateExpenseEntry('other', index, 'amount', parseFloat(e.target.value) || 0)}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm min-w-fit">Description:</Label>
-                          <Input
-                            className="w-44"
-                            placeholder="e.g., Lab fees, textbooks"
-                            value={entry.description || ''}
-                            onChange={(e) => updateExpenseEntry('other', index, 'description', e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeExpenseEntry('other', index)}
-                          className="text-red-600"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Total Expenses:</span>
-                  <span>{formatCurrency(formData.totalExpenses || 0)}</span>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -789,40 +600,59 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
 
               {/* Scholarships */}
               <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2">🎓 Scholarships</h4>
+                <h4 className="font-medium text-sm mb-2">🏆 Scholarships</h4>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Amount:</Label>
+                  {formData.fundingSources?.scholarships?.map((scholarship, index) => (
+                    <div key={index} className="flex items-center gap-2">
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                         <Input
                           type="number"
                           className="w-24 pl-6"
-                          placeholder="5000"
-                          value={formData.fundingSources?.scholarships?.[0]?.amount || 0}
+                          placeholder="0"
+                          value={scholarship.amount || 0}
                           onChange={(e) => {
-                            const scholarships = formData.fundingSources?.scholarships || [{ amount: 0, source: '', duration: 'annual' }];
-                            scholarships[0] = { ...scholarships[0], amount: parseFloat(e.target.value) || 0 };
-                            updateFunding('scholarships', '', scholarships);
+                            const newScholarships = [...(formData.fundingSources?.scholarships || [])];
+                            newScholarships[index] = { ...newScholarships[index], amount: parseFloat(e.target.value) || 0 };
+                            updateFunding('scholarships', '', newScholarships);
                           }}
                         />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Source:</Label>
                       <Input
                         className="w-44"
-                        placeholder="e.g., Merit Scholarship"
-                        value={formData.fundingSources?.scholarships?.[0]?.source || ''}
+                        placeholder="Scholarship name"
+                        value={scholarship.name || ''}
                         onChange={(e) => {
-                          const scholarships = formData.fundingSources?.scholarships || [{ amount: 0, source: '', duration: 'annual' }];
-                          scholarships[0] = { ...scholarships[0], source: e.target.value };
-                          updateFunding('scholarships', '', scholarships);
+                          const newScholarships = [...(formData.fundingSources?.scholarships || [])];
+                          newScholarships[index] = { ...newScholarships[index], name: e.target.value };
+                          updateFunding('scholarships', '', newScholarships);
                         }}
                       />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newScholarships = (formData.fundingSources?.scholarships || []).filter((_, i) => i !== index);
+                          updateFunding('scholarships', '', newScholarships);
+                        }}
+                        className="text-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
                     </div>
-                  </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newScholarships = [...(formData.fundingSources?.scholarships || []), { amount: 0, name: '' }];
+                      updateFunding('scholarships', '', newScholarships);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Scholarship
+                  </Button>
                 </div>
               </div>
 
@@ -832,20 +662,20 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 <div className="space-y-2">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Family Contribution:</Label>
+                      <Label className="text-sm min-w-fit">Family Support:</Label>
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                         <Input
                           type="number"
                           className="w-24 pl-6"
-                          placeholder="8000"
+                          placeholder="10000"
                           value={formData.fundingSources?.familyContribution?.amount || 0}
                           onChange={(e) => updateFunding('familyContribution', 'amount', parseFloat(e.target.value) || 0)}
                         />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Friends Contribution:</Label>
+                      <Label className="text-sm min-w-fit">Friends Support:</Label>
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                         <Input
@@ -858,57 +688,17 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm min-w-fit">Employer Contribution:</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <Input
-                          type="number"
-                          className="w-24 pl-6"
-                          placeholder="2000"
-                          value={formData.fundingSources?.familyContribution?.employerContribution || 0}
-                          onChange={(e) => updateFunding('familyContribution', 'employerContribution', parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
-                <div className="flex justify-between text-lg font-semibold text-green-600">
+                <div className="flex justify-between text-lg font-semibold mb-2">
                   <span>Total Funding:</span>
                   <span>{formatCurrency(formData.totalFunding || 0)}</span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="w-5 h-5" />
-                Financial Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Total Expenses:</span>
-                  <span className="font-semibold">{formatCurrency(formData.totalExpenses || 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Funding:</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(formData.totalFunding || 0)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between text-lg font-bold text-blue-600 dark:text-blue-400">
                   <span>Remaining Gap:</span>
-                  <span className={`${(formData.remainingGap || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatCurrency(formData.remainingGap || 0)}
-                  </span>
+                  <span>{formatCurrency((formData.totalExpenses || 0) - (formData.totalFunding || 0))}</span>
                 </div>
               </div>
             </CardContent>
