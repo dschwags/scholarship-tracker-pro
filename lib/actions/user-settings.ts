@@ -5,8 +5,7 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-import { db } from '@/lib/db/drizzle'
-import { users } from '@/lib/db/schema'
+// BugX: Legacy locked element fix - moved database imports to dynamic imports inside functions
 import { getSession } from '@/lib/auth/session'
 import { 
   UserPreferences, 
@@ -21,6 +20,10 @@ export async function getUserPreferences(): Promise<UserPreferences | null> {
   try {
     const session = await getSession()
     if (!session?.user?.id) return null
+
+    // BugX: Dynamic imports to prevent build-time database connections
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
 
     const user = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)
     if (!user[0]) return null
@@ -39,6 +42,10 @@ export async function updateUserPreferences(preferences: Partial<UserPreferences
     if (!session?.user?.id) {
       throw new Error('Not authenticated')
     }
+
+    // BugX: Dynamic imports to prevent build-time database connections
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
 
     // Get current preferences
     const currentUser = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)
@@ -91,6 +98,10 @@ export async function updateUserProfile(profileData: {
       throw new Error('Not authenticated')
     }
 
+    // BugX: Dynamic imports to prevent build-time database connections
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
+
     // Validate data
     if (profileData.gpa && (profileData.gpa < 0 || profileData.gpa > 4.0)) {
       throw new Error('GPA must be between 0.0 and 4.0')
@@ -126,6 +137,10 @@ export async function changePassword(request: PasswordChangeRequest) {
     if (!session?.user?.id) {
       throw new Error('Not authenticated')
     }
+
+    // BugX: Dynamic imports to prevent build-time database connections
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
 
     // Validate passwords match
     if (request.newPassword !== request.confirmPassword) {
@@ -199,6 +214,10 @@ export async function changeEmail(request: EmailChangeRequest) {
       throw new Error('Not authenticated')
     }
 
+    // BugX: Dynamic imports to prevent build-time database connections
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
+
     // Validate email format
     if (!emailValidation.pattern.test(request.newEmail)) {
       throw new Error('Invalid email format')
@@ -264,6 +283,10 @@ export async function deleteAccount(password: string) {
     if (!session?.user?.id) {
       throw new Error('Not authenticated')
     }
+
+    // BugX: Dynamic imports to prevent build-time database connections
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
 
     // Get current user and verify password
     const user = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)
