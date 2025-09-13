@@ -522,18 +522,6 @@ function convertNewGoalsToLegacyFormat(newGoals: any[]): GoalsData {
           expectedFamilyContribution: 0,
           parentContribution: 0,
           studentContribution: 0
-        },
-        savingsAndInvestments: {
-          amount: 0,
-          accountTypes: [],
-          liquidityTimeframe: '',
-          riskTolerance: 'moderate'
-        },
-        emergencyOptions: {
-          additionalLoans: { amount: 0, source: '' },
-          familySupport: { amount: 0, terms: '' },
-          workIncome: { amount: 0, source: '' },
-          other: { amount: 0, description: '' }
         }
       },
       
