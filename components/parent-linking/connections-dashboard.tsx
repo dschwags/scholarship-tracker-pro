@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Settings, Mail, Calendar, CheckCircle, Clock, XCircle, UserPlus, UserMinus } from 'lucide-react';
 import { getUserConnections } from '@/lib/actions/parent-linking';
 // import { removeCollaborator } from '@/lib/actions/user-management';
@@ -53,7 +53,7 @@ export function ConnectionsDashboard() {
   const loadConnections = async () => {
     try {
       const data = await getUserConnections();
-      setConnections(data);
+      setConnections(data as any);
     } catch (error) {
       console.error('Error loading connections:', error);
       toast.error('Failed to load connections');
@@ -261,7 +261,7 @@ export function ConnectionsDashboard() {
                   <div key={connection.id} className={getAlternatingRowClasses(index, {
                     className: "p-3 rounded border",
                     hoverEnabled: false
-                  })}>
+                  } as any)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-8 w-8">
@@ -287,7 +287,7 @@ export function ConnectionsDashboard() {
                   <div key={connection.id} className={getAlternatingRowClasses(index + connections.asChild.slice(0, 2).length, {
                     className: "p-3 rounded border",
                     hoverEnabled: false
-                  })}>
+                  } as any)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-8 w-8">
@@ -334,7 +334,7 @@ export function ConnectionsDashboard() {
                   <div key={connection.id} className={getAlternatingRowClasses(index, {
                     className: "p-4 rounded-lg border",
                     hoverEnabled: true
-                  })}>
+                  } as any)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <Avatar>
@@ -401,7 +401,7 @@ export function ConnectionsDashboard() {
                   <div key={connection.id} className={getAlternatingRowClasses(index, {
                     className: "p-4 rounded-lg border",
                     hoverEnabled: true
-                  })}>
+                  } as any)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <Avatar>

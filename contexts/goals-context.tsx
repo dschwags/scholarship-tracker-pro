@@ -140,7 +140,7 @@ const defaultGoalsData: GoalsData = {
         },
         employment: {
           amount: 0,
-          jobType: '',
+          jobType: 'part-time' as const,
           hoursPerWeek: 0,
           hourlyRate: 0
         }
@@ -235,7 +235,7 @@ const defaultGoalsData: GoalsData = {
       description: 'Maintain physical and mental health throughout college',
       deadline: '2024-12-31',
       priority: 'medium',
-      personalCategory: 'health',
+      category: 'health',
       isActive: true,
       progress: 65,
       createdAt: '2024-01-01T00:00:00Z',
@@ -317,7 +317,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
 
   const deleteGoal = (type: Goal['type'], id: string) => {
     const newGoals = { ...goals };
-    newGoals[type] = newGoals[type].filter(g => g.id !== id);
+    (newGoals[type] as Goal[]) = (newGoals[type] as Goal[]).filter(g => g.id !== id);
     setGoals(newGoals);
   };
 
@@ -337,13 +337,13 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
         console.error('Failed to add goal to new system:', error);
         // Fallback to legacy system
         const newGoals = { ...goals };
-        newGoals[newGoal.type].push(newGoal);
+        (newGoals[newGoal.type] as Goal[]).push(newGoal as Goal);
         setGoals(newGoals);
       }
     } else {
       // Use legacy system for non-financial goals or when new system is disabled
       const newGoals = { ...goals };
-      newGoals[newGoal.type].push(newGoal);
+      (newGoals[newGoal.type] as Goal[]).push(newGoal as Goal);
       setGoals(newGoals);
     }
   };
@@ -359,7 +359,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
   const getActiveGoals = (): Goal[] => {
     const allGoals: Goal[] = [];
     Object.values(goals).forEach(typeGoals => {
-      allGoals.push(...typeGoals.filter(g => g.isActive));
+      allGoals.push(...typeGoals.filter((g: Goal) => g.isActive));
     });
     return allGoals;
   };

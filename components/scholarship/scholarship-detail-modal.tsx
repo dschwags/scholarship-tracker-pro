@@ -184,7 +184,7 @@ export function ScholarshipDetailModal({
         <CardTitle className="flex items-center gap-2">
           <Icon className="w-5 h-5" />
           {title}
-          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" title={`Manage ${title.toLowerCase()} for this scholarship`} />
+          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
         </CardTitle>
       </CardHeader>
       <CardContent className="bg-transparent">
@@ -390,7 +390,7 @@ export function ScholarshipDetailModal({
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
                 Basic Information
-                <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" title="Update scholarship details like amount, deadline, and contact information. All fields are directly editable." />
+                <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 bg-transparent">

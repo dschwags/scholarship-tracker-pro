@@ -356,7 +356,7 @@ export function ProgressiveFinancialForm({
                     
                     {/* Confidence Indicator */}
                     <div className="flex items-center gap-2">
-                      {formData[field.id] && (
+                      {(formData as any)[field.id] && (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       )}
                       <Badge variant="outline" className="text-xs">
@@ -372,7 +372,7 @@ export function ProgressiveFinancialForm({
                       className="w-full p-3 border rounded-lg resize-none"
                       rows={3}
                       placeholder={field.placeholder}
-                      value={formData[field.id] || ''}
+                      value={(formData as any)[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
                     />
                   ) : (
@@ -380,7 +380,7 @@ export function ProgressiveFinancialForm({
                       id={field.id}
                       type={field.type}
                       placeholder={field.placeholder}
-                      value={formData[field.id] || ''}
+                      value={(formData as any)[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
                       className="text-base"
                     />

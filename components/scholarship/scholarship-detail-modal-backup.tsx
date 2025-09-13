@@ -132,7 +132,7 @@ export function ScholarshipDetailModal({
   const saveData = (sectionName?: string) => {
     console.log('💾 MODAL SAVE STARTED', sectionName ? `(${sectionName})` : '(MAIN SAVE)');
     console.log('📝 Modal scholarship data:', {
-      id: editedScholarship.id,
+      id: (editedScholarship as any).id,
       title: editedScholarship.title,
       amount: editedScholarship.amount,
       status: editedScholarship.status
@@ -289,7 +289,7 @@ export function ScholarshipDetailModal({
           <div className="flex items-center gap-2">
             <Icon className="w-5 h-5" />
             {title}
-            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" title={getHelpText(title)} />
+            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
           </div>
         </CardTitle>
       </CardHeader>
@@ -572,7 +572,7 @@ export function ScholarshipDetailModal({
                 <div className="flex items-center gap-2">
                   <Building2 className="w-5 h-5" />
                   Basic Information
-                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" title="Update scholarship details like amount, deadline, and contact information. All fields are directly editable." />
+                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
                 </div>
               </CardTitle>
             </CardHeader>
@@ -678,7 +678,6 @@ export function ScholarshipDetailModal({
                     </Button>
                   </div>
                 </>
-                <>
             </CardContent>
           </Card>
 

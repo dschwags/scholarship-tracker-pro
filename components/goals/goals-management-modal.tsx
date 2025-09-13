@@ -230,7 +230,7 @@ export function GoalsManagementModal({
       description: formData.description,
       priority: formData.priority,
       isActive: formData.isActive,
-      createdAt: editingId ? goals[formData.type].find(g => g.id === editingId)?.createdAt || now : now,
+      createdAt: editingId ? (goals[formData.type] as Goal[]).find(g => g.id === editingId)?.createdAt || now : now,
       updatedAt: now
     };
 
@@ -296,11 +296,12 @@ export function GoalsManagementModal({
       // Update existing goal
       const index = updatedGoals[formData.type].findIndex(g => g.id === editingId);
       if (index !== -1) {
-        updatedGoals[formData.type][index] = newGoal;
+        // BugX: Type assertion to resolve intersection conflict
+        (updatedGoals[formData.type] as Goal[])[index] = newGoal as Goal;
       }
     } else {
-      // Add new goal
-      updatedGoals[formData.type].push(newGoal);
+      // Add new goal - BugX: Type assertion to resolve intersection conflict
+      (updatedGoals[formData.type] as Goal[]).push(newGoal as Goal);
     }
 
     setGoals(updatedGoals);
@@ -310,7 +311,8 @@ export function GoalsManagementModal({
 
   const handleDeleteGoal = (type: Goal['type'], id: string) => {
     const updatedGoals = { ...goals };
-    updatedGoals[type] = updatedGoals[type].filter(g => g.id !== id);
+    // BugX: Type assertion to resolve intersection conflict
+    (updatedGoals[type] as Goal[]) = (updatedGoals[type] as Goal[]).filter(g => g.id !== id);
     setGoals(updatedGoals);
   };
 
@@ -413,8 +415,8 @@ export function GoalsManagementModal({
         {/* Type-specific fields */}
         {formData.type === 'financial' && (
           <EnhancedFinancialForm
-            formData={formData}
-            onChange={handleFormDataChange}
+            formData={formData as any}
+            onChange={handleFormDataChange as any}
             errors={errors}
           />
         )}
@@ -501,7 +503,7 @@ export function GoalsManagementModal({
   );
 
   const renderGoalsList = (type: Goal['type']) => {
-    const typeGoals = goals[type];
+    const typeGoals = goals[type] as Goal[];
 
     return (
       <div className="space-y-3">

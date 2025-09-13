@@ -94,7 +94,7 @@ export function CollaborativeScholarshipRow({
         className={getAlternatingRowClasses(index, {
           className: "p-4 rounded-lg cursor-pointer transition-all duration-200",
           hoverEnabled: true
-        })}
+        } as any)}
         onClick={() => onOpenModal(scholarship)}
       >
         <div className="flex items-center justify-between">
