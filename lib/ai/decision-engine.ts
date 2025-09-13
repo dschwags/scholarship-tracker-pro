@@ -5,16 +5,17 @@
  * for AI-assisted financial planning forms with comprehensive error handling.
  */
 
-import { db } from '@/lib/db/drizzle';
-import { 
-  financialGoals, 
-  goalExpenses, 
-  goalFundingSources, 
-  aiDecisionTrees,
-  aiFormContexts,
-  validationRules,
-  costCalculationTemplates
-} from '@/lib/db/schema-financial-goals';
+// BugX: LEGACY LOCKED ELEMENT FIXED - Dynamic imports to prevent build-time database access
+// import { db } from '@/lib/db/drizzle';
+// import { 
+//   financialGoals, 
+//   goalExpenses, 
+//   goalFundingSources, 
+//   aiDecisionTrees,
+//   aiFormContexts,
+//   validationRules,
+//   costCalculationTemplates
+// } from '@/lib/db/schema-financial-goals';
 import { eq, and, or } from 'drizzle-orm';
 import { getWorkerManager } from '@/lib/workers/worker-manager';
 
@@ -292,11 +293,16 @@ export class AIDecisionEngine {
       overallConfidence: 1.0
     };
     
-    // Get all applicable validation rules
-    const rules = await db
-      .select()
-      .from(validationRules)
-      .where(eq(validationRules.isActive, true));
+    try {
+      // BugX: Dynamic imports to prevent build-time database access
+      const { db } = await import('@/lib/db/drizzle');
+      const { validationRules } = await import('@/lib/db/schema-financial-goals');
+      
+      // Get all applicable validation rules
+      const rules = await db
+        .select()
+        .from(validationRules)
+        .where(eq(validationRules.isActive, true));
     
     for (const rule of rules) {
       try {
@@ -335,6 +341,18 @@ export class AIDecisionEngine {
           confidence: 0.3
         });
       }
+    }
+    
+    } catch (error) {
+      console.error('Database validation failed, using fallback:', error);
+      // Return basic validation without database
+      results.warnings.push({
+        ruleId: 'db_unavailable',
+        fieldId: 'system',
+        message: 'Advanced validation temporarily unavailable',
+        severity: 'warning',
+        confidence: 0.5
+      });
     }
     
     return results;
