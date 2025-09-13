@@ -2,7 +2,6 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ResetPasswordForm } from '@/components/auth/reset-password-form'
-import { verifyResetToken } from '@/lib/actions/password-reset'
 
 export default async function ResetPasswordPage(props: any) {
   const searchParams = await props.searchParams
@@ -12,49 +11,7 @@ export default async function ResetPasswordPage(props: any) {
     redirect('/forgot-password')
   }
 
-  // Verify token is valid
-  const tokenVerification = await verifyResetToken(token)
-  
-  if (!tokenVerification.valid) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-red-100">
-              <svg
-                className="h-6 w-6 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Invalid Reset Link
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              {tokenVerification.error}
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/forgot-password"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-              >
-                Request a new password reset link
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // BugX: Moved token verification to client-side to prevent build-time database access
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -78,7 +35,7 @@ export default async function ResetPasswordPage(props: any) {
             Reset your password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your new password for <span className="font-medium">{tokenVerification.user?.email}</span>
+            Enter your new password below
           </p>
         </div>
         

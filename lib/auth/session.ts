@@ -1,18 +1,29 @@
-import bcrypt from 'bcryptjs';
+import { scrypt } from '@noble/hashes/scrypt';
+import { randomBytes } from 'crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 // NewUser type removed - using generic user object for setSession
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
+  const salt = randomBytes(16);
+  const hash = scrypt(password, salt, { N: 16384, r: 8, p: 1, dkLen: 32 });
+  return Buffer.concat([salt, Buffer.from(hash)]).toString('base64');
 }
 
 export async function comparePasswords(
   plainTextPassword: string,
   hashedPassword: string
 ) {
-  return bcrypt.compare(plainTextPassword, hashedPassword);
+  try {
+    const hashBuffer = Buffer.from(hashedPassword, 'base64');
+    const salt = hashBuffer.subarray(0, 16);
+    const hash = hashBuffer.subarray(16);
+    const computed = scrypt(plainTextPassword, salt, { N: 16384, r: 8, p: 1, dkLen: 32 });
+    return Buffer.from(hash).equals(Buffer.from(computed));
+  } catch {
+    return false;
+  }
 }
 
 type SessionData = {

@@ -1,7 +1,6 @@
 'use server'
 
-import bcrypt from 'bcryptjs'
-import { compare as bcryptCompare } from 'bcryptjs'
+import { comparePasswords } from '@/lib/auth/session'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/drizzle'
 import { users } from '@/lib/db/schema'
@@ -12,8 +11,8 @@ export async function verifyPasswordWithMigration(
   currentHash: string
 ): Promise<{ isValid: boolean; needsMigration: boolean; newHash?: string }> {
   
-  // Use bcryptjs for all password verification
-  const isValid = await bcrypt.compare(plainPassword, currentHash)
+  // Use comparePasswords for all password verification
+  const isValid = await comparePasswords(plainPassword, currentHash)
   
   return { 
     isValid, 
