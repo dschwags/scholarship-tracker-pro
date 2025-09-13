@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth/session'
 import { MainDashboard } from '@/components/dashboard/main-dashboard' // ✅ BugX infinite loop fixes applied
-import { db } from '@/lib/db/drizzle'
-import { scholarships, applications } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 
 export default async function Dashboard() {
   console.log('📋 Dashboard: Starting dashboard load...');
@@ -21,73 +18,148 @@ export default async function Dashboard() {
   
   console.log('✅ Dashboard: Session valid, proceeding with dashboard render');
   
-  const user = session.user
+  const user = session.user;
 
-  // Fetch real scholarship data directly from database
-  let userScholarships: any[] = [];
+  // Use dynamic imports to avoid bundling database code in client
+  const { db } = await import('@/lib/db/drizzle');
+  const { scholarships, applications } = await import('@/lib/db/schema');
+  const { financialGoals } = await import('@/lib/db/schema-financial-goals');
+  const { eq, desc, and } = await import('drizzle-orm');
+  
+  // Fetch dashboard data directly (server-side)
+  let userApplications: any[] = [];
+  let userFinancialGoals: any[] = [];
   let apiError = null;
   
   try {
-    console.log('🔄 Dashboard: Fetching scholarships from database...');
+    console.log('🔄 Dashboard: Fetching user applications from database...');
     
-    // Get scholarships created by this user
-    userScholarships = await db
+    // Get user's scholarship applications with scholarship details
+    userApplications = await db
       .select({
-        id: scholarships.id,
+        id: applications.id,
+        applicationId: applications.id,
+        scholarshipId: applications.scholarshipId,
         title: scholarships.title,
         description: scholarships.description,
         amount: scholarships.amount,
         currency: scholarships.currency,
         provider: scholarships.provider,
         applicationDeadline: scholarships.applicationDeadline,
-        status: scholarships.status,
-        createdAt: scholarships.createdAt,
+        status: applications.status,
+        submittedAt: applications.submittedAt,
+        awardAmount: applications.awardAmount,
+        notes: applications.notes,
+        createdAt: applications.createdAt,
+        scholarshipStatus: scholarships.status
       })
-      .from(scholarships)
-      .where(eq(scholarships.createdBy, session.user.id))
+      .from(applications)
+      .leftJoin(scholarships, eq(applications.scholarshipId, scholarships.id))
+      .where(eq(applications.userId, session.user.id));
     
-    console.log('✅ Dashboard: Fetched scholarships successfully:', {
-      count: userScholarships.length,
-      totalAmount: userScholarships.reduce((sum, s) => sum + parseFloat(s.amount), 0)
+    // Add progress data for scholarship applications UI
+    userApplications = userApplications.map((app, index) => {
+      // Calculate progress percentage based on status and mock requirements
+      let completion = 0;
+      let completionText = '0/6 completed';
+      
+      switch (app.status) {
+        case 'draft':
+          completion = 15;
+          completionText = '1/6 completed';
+          break;
+        case 'in_progress':
+        case 'under_review':
+          completion = 75;
+          completionText = '4.5/6 completed';
+          break;
+        case 'submitted':
+          completion = 100;
+          completionText = '6/6 completed';
+          break;
+        case 'accepted':
+        case 'awarded':
+          completion = 100;
+          completionText = '6/6 completed';
+          break;
+        case 'rejected':
+          completion = 100;
+          completionText = '6/6 completed';
+          break;
+        default:
+          completion = 0;
+          completionText = '0/6 completed';
+      }
+      
+      return {
+        ...app,
+        completion,
+        completionText,
+        // Add missing fields for ScholarshipRow component
+        deadline: app.applicationDeadline,
+        category: 'Academic', // Default category - could be enhanced with real data
+        organizationUrl: `https://www.${app.provider?.toLowerCase().replace(/\s+/g, '') || 'scholarship'}.edu`,
+        applicationUrl: `https://apply.${app.provider?.toLowerCase().replace(/\s+/g, '') || 'scholarship'}.edu/application`
+      };
+    });
+    
+    console.log('✅ Dashboard: Fetched applications successfully:', {
+      count: userApplications.length,
+      totalAmount: userApplications.reduce((sum, s) => sum + parseFloat(s.amount || '0'), 0),
+      sampleProgress: userApplications.slice(0, 2).map(s => ({ status: s.status, completion: s.completion }))
+    });
+    
+    // Also fetch user's financial goals
+    console.log('🔄 Dashboard: Fetching user financial goals from database...');
+    userFinancialGoals = await db
+      .select()
+      .from(financialGoals)
+      .where(eq(financialGoals.userId, session.user.id))
+      .orderBy(desc(financialGoals.createdAt));
+    
+    console.log('✅ Dashboard: Fetched financial goals successfully:', {
+      count: userFinancialGoals.length,
+      totalTarget: userFinancialGoals.reduce((sum, g) => sum + parseFloat(g.targetAmount || '0'), 0)
     });
   } catch (error) {
-    console.error('❌ Dashboard: Error fetching scholarships:', error);
-    apiError = 'Failed to load scholarships from database';
+    console.error('❌ Dashboard: Error fetching applications:', error);
+    apiError = 'Failed to load applications from database';
   }
 
-  const totalApplications = userScholarships.length;
-  const totalAwarded = userScholarships.filter(s => s.status === 'awarded').length;
-  const totalRejected = userScholarships.filter(s => s.status === 'rejected').length;
-  const totalPending = userScholarships.filter(s => s.status === 'submitted').length;
+  const totalApplications = userApplications.length;
+  const totalAwarded = userApplications.filter(s => s.status === 'accepted').length;
+  const totalRejected = userApplications.filter(s => s.status === 'rejected').length;
+  const totalPending = userApplications.filter(s => s.status === 'submitted').length;
+  const totalDraft = userApplications.filter(s => s.status === 'draft').length;
+  const totalUnderReview = userApplications.filter(s => s.status === 'under_review').length;
   const completedApplications = totalAwarded + totalRejected;
   const successRate = completedApplications > 0 ? Math.round((totalAwarded / completedApplications) * 100) : 0;
-  // No earnings until actual scholarships are won
-  const totalEarnings = 0;
-
-
+  const totalEarnings = userApplications.filter(s => s.awardAmount).reduce((sum, s) => sum + parseFloat(s.awardAmount || '0'), 0);
 
   // Calculate stats from real data
-  const totalTracked = userScholarships.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  const totalTracked = userApplications.reduce((sum, s) => sum + parseFloat(s.amount || '0'), 0);
   
   const stats = {
     applications: {
       total: totalApplications,
       submitted: totalPending,
-      draft: userScholarships.filter(s => s.status === 'not_started' || s.status === 'draft').length,
+      draft: totalDraft,
       accepted: totalAwarded,
-      rejected: totalRejected
+      rejected: totalRejected,
+      under_review: totalUnderReview
     },
     scholarships: {
-      saved: userScholarships.length,
+      saved: userApplications.length,
       available: 50 // Mock value
     },
     funding: {
       total: totalTracked,
-      won: 0,
-      potential: 0
+      won: totalEarnings,
+      potential: totalTracked - totalEarnings
     },
     successRate,
-    upcomingDeadlines: userScholarships.filter(s => {
+    upcomingDeadlines: userApplications.filter(s => {
+      if (!s.applicationDeadline) return false;
       const deadline = new Date(s.applicationDeadline);
       const now = new Date();
       const daysUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
@@ -101,8 +173,6 @@ export default async function Dashboard() {
     totalTracked: totalTracked,
     collaborators: 0 // This would come from connections API
   };
-  
-  // API error state is set above during fetch
   
   console.log('📊 Dashboard: Calculated stats:', {
     totalApplications,
@@ -148,12 +218,15 @@ export default async function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-4">
         <MainDashboard 
-          user={user} 
-          stats={stats} 
+          user={user}
+          scholarships={userApplications}
+          financialGoals={userFinancialGoals}
+          stats={stats}
+          welcomeStats={welcomeStats}
           recentActivity={recentActivity}
-          scholarships={userScholarships}
+          apiError={apiError}
         />
       </div>
     </div>
-  )
+  );
 }

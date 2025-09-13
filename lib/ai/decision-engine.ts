@@ -16,6 +16,7 @@ import {
   costCalculationTemplates
 } from '@/lib/db/schema-financial-goals';
 import { eq, and, or } from 'drizzle-orm';
+import { getWorkerManager } from '@/lib/workers/worker-manager';
 
 // Core Types
 export interface AIDecisionTree {
@@ -110,14 +111,32 @@ export interface FieldUpdate {
 export class AIDecisionEngine {
   private readonly CONFIDENCE_THRESHOLD = 0.7;
   private readonly MAX_RESOLUTION_ATTEMPTS = 3;
+  private readonly USE_WORKERS = typeof window !== 'undefined' && 'Worker' in window;
+  private workerManager = this.USE_WORKERS ? getWorkerManager() : null;
   
   /**
    * Process a field update through the complete AI decision pipeline
+   * Uses Web Workers when available for better performance
    */
   async processFieldUpdate(
     fieldUpdate: FieldUpdate,
-    currentContext: AIFormContext
+    currentContext: AIFormContext,
+    onProgress?: (progress: number) => void
   ): Promise<AIFormContext> {
+    // Use Web Workers if available and in browser environment
+    if (this.USE_WORKERS && this.workerManager) {
+      try {
+        console.log('🧵 Using Web Worker for AI field processing');
+        return await this.workerManager.processFieldUpdate(
+          fieldUpdate, 
+          currentContext, 
+          onProgress
+        );
+      } catch (error) {
+        console.warn('⚠️ Worker processing failed, falling back to main thread:', error);
+        // Fall through to main thread processing
+      }
+    }
     try {
       // Phase 1: Update context with new field data
       const updatedContext = await this.updateContextWithFieldData(

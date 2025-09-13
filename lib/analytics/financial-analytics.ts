@@ -5,7 +5,27 @@
  * providing comprehensive calculations and insights.
  */
 
-import { FinancialGoal } from '@/lib/db/schema-financial-goals';
+// FinancialGoal type definition moved to avoid database imports in client
+interface FinancialGoal {
+  id: number;
+  userId: number;
+  type: string;
+  name: string;
+  targetAmount: number;
+  targetDate: Date;
+  priority: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  expenses?: Array<{
+    name: string;
+    amount: number;
+  }>;
+  funding?: Array<{
+    source: string;
+    amount: number;
+  }>;
+}
 
 export interface FinancialMetrics {
   // Core Metrics

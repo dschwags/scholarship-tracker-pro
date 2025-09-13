@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { GoalsData, Goal, FinancialGoal } from '@/components/goals/goals-types';
 import { useFeatureFlag } from '@/lib/feature-flags/hooks';
 import { useGoalsSystem } from '@/lib/hooks/use-goals-system';
@@ -26,6 +26,9 @@ interface GoalsContextType {
   migrationStatus: 'pending' | 'in_progress' | 'completed' | 'failed' | null;
   migrateToNewSystem: () => Promise<void>;
   systemError: string | null;
+  
+  // Server-side data initialization
+  initializeWithServerData: (serverGoals: any[]) => void;
 }
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
@@ -272,21 +275,24 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
 
   // Determine which system to use and merge data
   useEffect(() => {
-    if (isUsingNewSystem && newSystemGoals.length > 0) {
-      // Convert new system goals to legacy format for compatibility
+    if (isUsingNewSystem && newSystemGoals !== undefined) {
+      // Convert new system goals to legacy format for compatibility (including empty arrays)
       const convertedGoals = convertNewGoalsToLegacyFormat(newSystemGoals);
+      console.log('🔄 GoalsContext: Using new system data', { goalCount: newSystemGoals.length, convertedGoals });
       setGoalsState(convertedGoals);
-    } else {
-      // Load legacy goals from localStorage
+    } else if (!isUsingNewSystem) {
+      // Load legacy goals from localStorage only if not using new system
       const savedGoals = localStorage.getItem('scholarship-tracker-goals');
       if (savedGoals) {
         try {
+          console.log('📂 GoalsContext: Using localStorage data');
           setGoalsState(JSON.parse(savedGoals));
         } catch (error) {
           console.error('Error loading goals from localStorage:', error);
         }
       }
     }
+    // Note: If isUsingNewSystem is true but newSystemGoals is undefined (still loading), do nothing
   }, [isUsingNewSystem, newSystemGoals]);
 
   // Save goals to localStorage whenever goals change
@@ -402,6 +408,25 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
 
     return Math.round(totalProgress / activeGoals.length);
   };
+  
+  // Server-side data initialization method (memoized to prevent infinite re-renders)
+  const initializeWithServerData = useCallback((serverGoals: any[]) => {
+    console.log('🔄 GoalsContext: initializeWithServerData called with:', {
+      serverGoalsCount: serverGoals.length,
+      isUsingNewSystem,
+      currentGoalsCount: goals.financial.length
+    });
+    
+    if (serverGoals && serverGoals.length >= 0) {
+      // Convert server goals to legacy format and set immediately
+      const convertedGoals = convertNewGoalsToLegacyFormat(serverGoals);
+      console.log('✅ GoalsContext: Server data converted and applied:', {
+        financialGoalsCount: convertedGoals.financial.length,
+        convertedGoals
+      });
+      setGoalsState(convertedGoals);
+    }
+  }, [isUsingNewSystem, goals.financial.length]); // ✅ BUGX: Memoized with stable deps
 
   const value: GoalsContextType = {
     goals,
@@ -422,7 +447,10 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
     hasLegacyData,
     migrationStatus,
     migrateToNewSystem: migrateData,
-    systemError: newSystemError
+    systemError: newSystemError,
+    
+    // Server-side data initialization
+    initializeWithServerData
   };
 
   return (

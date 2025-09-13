@@ -1,15 +1,9 @@
 'use client';
 
 import { createContext, useContext, ReactNode } from 'react';
-import { User } from '@/lib/db/schema';
+import { SessionUser, ApiUser } from '@/types/api';
 
-// Session user type (from auth/session.ts)
-interface SessionUser {
-  id: number;
-  email: string;
-  name: string | null;
-  role: string;
-}
+// SessionUser is now imported from types/api.ts
 
 interface AuthContextType {
   user: SessionUser | null;
@@ -44,20 +38,19 @@ export function useAuth() {
   return context;
 }
 
-// Hook that returns User type compatible with existing components
-export function useAuthUser(): User | null {
+// Hook that returns ApiUser type compatible with existing components
+export function useAuthUser(): ApiUser | null {
   const { user } = useAuth();
   
   if (!user) return null;
   
-  // Convert SessionUser to User type for compatibility
+  // Convert SessionUser to ApiUser type for compatibility
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
-    // Default values for User type fields not in SessionUser
-    passwordHash: '',
+    // Default values for ApiUser type fields not in SessionUser
     profilePicture: null,
     phone: null,
     dateOfBirth: null,
@@ -76,10 +69,8 @@ export function useAuthUser(): User | null {
     isActive: true,
     emailVerified: false,
     preferences: null,
-    resetToken: null,
-    resetTokenExpiry: null,
     createdAt: new Date('2024-01-01'), // ✅ BUGX: Fixed timestamp to prevent infinite re-renders
     updatedAt: new Date('2024-01-01'), // ✅ BUGX: Fixed timestamp to prevent infinite re-renders
     deletedAt: null
-  } as User;
+  } as ApiUser;
 }

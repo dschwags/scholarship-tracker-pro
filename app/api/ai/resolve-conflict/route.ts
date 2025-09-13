@@ -114,7 +114,10 @@ async function getAIContext(
     if (existingContext[0]) {
       return {
         ...existingContext[0],
-        inferredData: { ...existingContext[0].inferredData, ...currentData }
+        inferredData: { 
+          ...(existingContext[0].inferredData && typeof existingContext[0].inferredData === 'object' ? existingContext[0].inferredData : {}), 
+          ...currentData 
+        }
       };
     }
 

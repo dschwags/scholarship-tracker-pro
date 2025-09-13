@@ -5,9 +5,6 @@ import { getSession } from '@/lib/auth/session'
 import { getUserPreferences } from '@/lib/actions/user-settings'
 import { SettingsLayout } from '@/components/settings/settings-layout'
 import { Button } from '@/components/ui/button'
-import { db } from '@/lib/db/drizzle'
-import { users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 import { ComponentUser } from '@/types/user'
 
 export default async function SettingsPage() {
@@ -16,6 +13,11 @@ export default async function SettingsPage() {
   if (!session) {
     redirect('/sign-in')
   }
+  
+  // Use dynamic imports to avoid bundling database code in client
+  const { db } = await import('@/lib/db/drizzle');
+  const { users } = await import('@/lib/db/schema');
+  const { eq } = await import('drizzle-orm');
   
   // Fetch complete user data from database
   const userData = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1)

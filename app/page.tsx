@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import { getUser } from '@/lib/db/queries';
+import { getUserData } from '@/lib/actions/user-data';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, GraduationCap, Users, UserCheck, Award, TrendingUp, Shield } from 'lucide-react';
 import { siteConfig } from '@/lib/config';
 import Link from 'next/link';
 
 export default async function HomePage() {
-  const user = await getUser();
+  const user = await getUserData();
 
   // Redirect authenticated users to dashboard
   if (user) {

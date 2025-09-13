@@ -62,6 +62,7 @@ interface MainDashboardProps {
   stats: DashboardStats;
   recentActivity: RecentActivity[];
   scholarships?: any[];
+  financialGoals?: any[]; // Server-side financial goals data
   welcomeStats?: {
     applications: number;
     totalTracked: number;
@@ -178,7 +179,7 @@ const SAMPLE_SCHOLARSHIPS = [
   }
 ];
 
-export function MainDashboard({ user, stats, recentActivity, scholarships = [], welcomeStats, apiError }: MainDashboardProps) {
+export function MainDashboard({ user, stats, recentActivity, scholarships = [], financialGoals = [], welcomeStats, apiError }: MainDashboardProps) {
   // State Management - Initialize with scholarships from server
   const [scholarshipsData, setScholarshipsData] = useState<any[]>(scholarships);
   const [selectedScholarship, setSelectedScholarship] = useState<any>(null);
@@ -186,8 +187,21 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
   const [expandedQuickView, setExpandedQuickView] = useState<number | null>(null);
 
   const [isFinancialGoalsModalOpen, setIsFinancialGoalsModalOpen] = useState(false);
-  const { goals, setGoals } = useGoals();
+  const { goals, setGoals, initializeWithServerData } = useGoals();
   const [forceHideWelcome, setForceHideWelcome] = useState(false);
+  
+  // Initialize financial goals with server data when component mounts
+  useEffect(() => {
+    if (financialGoals && financialGoals.length >= 0) {
+      console.log('🛠️ MainDashboard: Initializing goals context with server data:', {
+        serverGoalsCount: financialGoals.length,
+        hasInitMethod: typeof initializeWithServerData === 'function'
+      });
+      if (typeof initializeWithServerData === 'function') {
+        initializeWithServerData(financialGoals);
+      }
+    }
+  }, [financialGoals]); // ✅ BUGX: Removed initializeWithServerData from deps to prevent infinite loop
   
   // Initialize scholarshipsData when scholarships prop changes
   useEffect(() => {

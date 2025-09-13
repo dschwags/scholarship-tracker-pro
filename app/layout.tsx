@@ -1,7 +1,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
-import { getUser } from '@/lib/db/queries';
+import { getUserData } from '@/lib/actions/user-data';
 import { SWRConfig } from 'swr';
 import Header from '@/components/header';
 import { ThemeProvider } from '@/contexts/theme-context';
@@ -28,15 +28,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   // Get user data server-side to prevent client-side flickering
-  const user = await getUser();
-  
-  // Convert User to SessionUser format for AuthProvider
-  const sessionUser = user ? {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role
-  } : null;
+  const sessionUser = await getUserData();
   
   return (
     <html
@@ -45,8 +37,8 @@ export default async function RootLayout({
     >
       <body className="min-h-[100dvh] bg-background text-foreground">
         <FeatureFlagProvider 
-          userRole={user?.role === 'admin' ? 'admin' : user ? 'user' : 'user'}
-          userId={user?.id?.toString()}
+          userRole={sessionUser?.role === 'admin' ? 'admin' : sessionUser ? 'user' : 'user'}
+          userId={sessionUser?.id?.toString()}
         >
           <AuthProvider initialUser={sessionUser}>
             <ThemeProvider>
@@ -55,7 +47,7 @@ export default async function RootLayout({
               value={{
                 fallback: {
                   // Pre-populate with server-side user data
-                  '/api/user': user
+                  '/api/user': sessionUser
                 }
               }}
             >

@@ -83,6 +83,9 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 const signUpSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
+  // Keep legacy name field for backward compatibility
   name: z.string().min(1).max(100).optional(),
   role: z.enum(['student', 'parent', 'counselor', 'admin']).default('student'),
   phone: z.string().optional(),
@@ -94,7 +97,19 @@ const signUpSchema = z.object({
 });
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, password, name, role, phone, educationLevel, educationalStatus, educationalDescription, graduationYear, school } = data;
+  const { email, password, firstName, lastName, name, role, phone, educationLevel, educationalStatus, educationalDescription, graduationYear, school } = data;
+  
+  // Combine firstName and lastName into name field for database storage
+  const fullName = firstName && lastName ? `${firstName} ${lastName}`.trim() : name || null;
+  
+  // Validate that user provided some form of name
+  if (!fullName || fullName.trim().length === 0) {
+    return {
+      error: 'Please provide your first and last name.',
+      email,
+      password
+    };
+  }
   
   // Validate graduation year if provided
   if (graduationYear && (graduationYear < 2020 || graduationYear > 2040)) {
@@ -124,7 +139,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const newUser: NewUser = {
     email,
     passwordHash,
-    name: name || null,
+    name: fullName,
     role: role || 'student',
     phone: phone || null,
     educationLevel: educationLevel || null,

@@ -151,7 +151,10 @@ async function getOrCreateAIContext(
       const context = existingContext[0];
       return {
         ...context,
-        inferredData: { ...context.inferredData, ...currentData },
+        inferredData: { 
+          ...(context.inferredData && typeof context.inferredData === 'object' ? context.inferredData : {}), 
+          ...currentData 
+        },
         currentPhase,
         updatedAt: new Date()
       };

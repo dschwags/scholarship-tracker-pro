@@ -8,14 +8,18 @@ import { redirect } from 'next/navigation';
 async function clearLegacySessionAction() {
   'use server';
   
-  // Clear all possible legacy cookies
-  const cookieStore = cookies();
-  const allCookies = cookieStore.getAll();
+  // Clear common legacy session cookies
+  const cookieStore = await cookies();
   
-  // Clear any session-related cookies
-  allCookies.forEach(cookie => {
-    if (cookie.name.includes('session') || cookie.name.includes('auth') || cookie.name.includes('token')) {
-      cookieStore.delete(cookie.name);
+  // Clear known session-related cookies
+  const sessionCookies = ['session', 'auth-token', 'user-session', 'next-auth.session-token', 'sb-access-token', 'sb-refresh-token'];
+  
+  sessionCookies.forEach(cookieName => {
+    try {
+      cookieStore.delete(cookieName);
+    } catch (error) {
+      // Ignore errors for non-existent cookies
+      console.log(`Cookie ${cookieName} not found or already deleted`);
     }
   });
   

@@ -1,4 +1,10 @@
-import { User } from '@/lib/db/schema';
+import { ApiUser } from '@/types/api';
+
+// Generic user interface for role checking
+interface UserWithRole {
+  id: number;
+  role: string;
+}
 
 export type UserRole = 'student' | 'parent' | 'counselor' | 'admin';
 
@@ -56,7 +62,7 @@ export function hasPermission(
 }
 
 export function canAccessResource(
-  user: User | null,
+  user: UserWithRole | null,
   resource: keyof typeof ROLE_PERMISSIONS.student,
   action: string
 ): boolean {
@@ -66,31 +72,31 @@ export function canAccessResource(
   return hasPermission(user.role as UserRole, resource, action);
 }
 
-export function isStudent(user: User | null): boolean {
+export function isStudent(user: UserWithRole | null): boolean {
   return user?.role === 'student';
 }
 
-export function isParent(user: User | null): boolean {
+export function isParent(user: UserWithRole | null): boolean {
   return user?.role === 'parent';
 }
 
-export function isCounselor(user: User | null): boolean {
+export function isCounselor(user: UserWithRole | null): boolean {
   return user?.role === 'counselor';
 }
 
-export function isAdmin(user: User | null): boolean {
+export function isAdmin(user: UserWithRole | null): boolean {
   return user?.role === 'admin';
 }
 
-export function canManageUsers(user: User | null): boolean {
+export function canManageUsers(user: UserWithRole | null): boolean {
   return isAdmin(user) || isCounselor(user);
 }
 
-export function canManageScholarships(user: User | null): boolean {
+export function canManageScholarships(user: UserWithRole | null): boolean {
   return isAdmin(user) || isCounselor(user);
 }
 
-export function canViewAnalytics(user: User | null): boolean {
+export function canViewAnalytics(user: UserWithRole | null): boolean {
   return isAdmin(user) || isCounselor(user);
 }
 
@@ -126,7 +132,7 @@ export function hasHigherRole(userRole: UserRole, targetRole: UserRole): boolean
   return ROLE_HIERARCHY[userRole] > ROLE_HIERARCHY[targetRole];
 }
 
-export function canViewUserData(currentUser: User | null, targetUserId: number): boolean {
+export function canViewUserData(currentUser: UserWithRole | null, targetUserId: number): boolean {
   if (!currentUser) return false;
   
   // Users can always view their own data

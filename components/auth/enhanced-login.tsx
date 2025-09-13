@@ -124,23 +124,46 @@ export function EnhancedLogin({ mode = 'signin' }: { mode?: 'signin' | 'signup' 
                     </RadioGroup>
                   </div>
 
-                  {/* Name Field */}
-                  <div>
-                    <Label htmlFor="name" className="block text-sm font-medium">
-                      Full Name
-                    </Label>
-                    <div className="mt-1">
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        autoComplete="name"
-                        defaultValue={state.name}
-                        required={mode === 'signup'}
-                        maxLength={100}
-                        className="rounded-lg"
-                        placeholder="Enter your full name"
-                      />
+                  {/* Name Fields - Updated to separate First/Last Name */}
+                  <div className="space-y-4">
+                    <Label className="text-sm font-medium">Name</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="firstName" className="block text-sm font-medium text-muted-foreground">
+                          First Name
+                        </Label>
+                        <div className="mt-1">
+                          <Input
+                            id="firstName"
+                            name="firstName"
+                            type="text"
+                            autoComplete="given-name"
+                            defaultValue={state.firstName}
+                            required={mode === 'signup'}
+                            maxLength={50}
+                            className="rounded-lg"
+                            placeholder="First name"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName" className="block text-sm font-medium text-muted-foreground">
+                          Last Name
+                        </Label>
+                        <div className="mt-1">
+                          <Input
+                            id="lastName"
+                            name="lastName"
+                            type="text"
+                            autoComplete="family-name"
+                            defaultValue={state.lastName}
+                            required={mode === 'signup'}
+                            maxLength={50}
+                            className="rounded-lg"
+                            placeholder="Last name"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </> 

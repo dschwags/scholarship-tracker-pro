@@ -1,7 +1,7 @@
 import { verify, hash } from '@node-rs/argon2';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { NewUser } from '@/lib/db/schema';
+// NewUser type removed - using generic user object for setSession
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 export async function hashPassword(password: string) {

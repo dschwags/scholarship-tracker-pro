@@ -9,7 +9,20 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import useSWR from 'swr';
 import { FinancialAnalyticsService, FinancialMetrics, ScholarshipStats } from '@/lib/analytics/financial-analytics';
 import { useFeatureFlag } from '@/lib/feature-flags/hooks';
-import { FinancialGoal } from '@/lib/db/schema-financial-goals';
+// FinancialGoal type definition moved to avoid database imports in client
+interface FinancialGoal {
+  id: number;
+  userId: number;
+  type: string;
+  name: string;
+  targetAmount: number;
+  targetDate: Date;
+  priority: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  // Additional fields as needed
+}
 
 interface UseFinancialAnalyticsReturn {
   // Core Metrics
