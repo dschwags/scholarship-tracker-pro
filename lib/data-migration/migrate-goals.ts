@@ -3,8 +3,9 @@
  * Bulletproof migration with rollback capabilities
  */
 
-import { db } from '@/lib/db/drizzle';
-import { financialGoals, goalExpenses } from '@/lib/db/schema-financial-goals';
+// 🚨 BUGX CRITICAL FIX: Dynamic imports to prevent legacy lock
+// import { db } from '@/lib/db/drizzle';
+// import { financialGoals, goalExpenses } from '@/lib/db/schema-financial-goals';
 import { eq } from 'drizzle-orm';
 
 interface LegacyGoal {
@@ -239,6 +240,10 @@ export class GoalsDataMigrator {
    * Check existing goals in database
    */
   private async checkExistingGoals() {
+    // 🚨 BUGX CRITICAL FIX: Dynamic import to prevent legacy lock
+    const { db } = await import('@/lib/db/drizzle');
+    const { financialGoals } = await import('@/lib/db/schema-financial-goals');
+    
     return await db
       .select()
       .from(financialGoals)
@@ -257,6 +262,10 @@ export class GoalsDataMigrator {
 
     // Use database transaction for safety
     try {
+      // 🚨 BUGX CRITICAL FIX: Dynamic import to prevent legacy lock
+      const { db } = await import('@/lib/db/drizzle');
+      const { financialGoals, goalExpenses } = await import('@/lib/db/schema-financial-goals');
+      
       await db.transaction(async (tx) => {
         for (const legacyGoal of legacyGoals) {
           try {

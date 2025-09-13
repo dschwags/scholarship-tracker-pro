@@ -1,13 +1,19 @@
 'use server';
 
-import { db } from '@/lib/db/drizzle';
-import { users } from '@/lib/db/schema';
-import { financialGoals, goalExpenses, goalFundingSources } from '@/lib/db/schema-financial-goals';
+// 🚨 BUGX CRITICAL FIX: Dynamic imports to prevent legacy lock
+// import { db } from '@/lib/db/drizzle';
+// import { users } from '@/lib/db/schema';
+// import { financialGoals, goalExpenses, goalFundingSources } from '@/lib/db/schema-financial-goals';
 import { eq, or } from 'drizzle-orm';
 
 export async function populateFinancialGoalsAction() {
   try {
     console.log('🎯 Starting financial goals population...');
+
+    // 🚨 BUGX CRITICAL FIX: Dynamic imports to prevent legacy lock
+    const { db } = await import('@/lib/db/drizzle');
+    const { users } = await import('@/lib/db/schema');
+    const { financialGoals, goalExpenses, goalFundingSources } = await import('@/lib/db/schema-financial-goals');
 
     // Get all test users
     const testUsers = await db
