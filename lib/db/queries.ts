@@ -1,6 +1,7 @@
 import { desc, and, eq, isNull, sql } from 'drizzle-orm';
-import { db } from './drizzle';
-import { activityLogs, users, applications, scholarships, savedScholarships, notifications } from './schema';
+// BugX: Legacy locked element fix - moved database imports to dynamic imports inside functions
+// import { db } from './drizzle';
+// import { activityLogs, users, applications, scholarships, savedScholarships, notifications } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -22,6 +23,10 @@ export async function getUser() {
   if (new Date(sessionData.expires) < new Date()) {
     return null;
   }
+
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { users } = await import('./schema');
 
   const user = await db
     .select()
@@ -47,6 +52,10 @@ export async function getActivityLogs() {
     throw new Error('User not authenticated');
   }
 
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { activityLogs, users } = await import('./schema');
+
   return await db
     .select({
       id: activityLogs.id,
@@ -69,6 +78,10 @@ export async function getUserApplications() {
   if (!user) {
     throw new Error('User not authenticated');
   }
+
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { applications, scholarships } = await import('./schema');
 
   return await db
     .select({
@@ -97,6 +110,10 @@ export async function getUserApplications() {
 
 // Get available scholarships
 export async function getAvailableScholarships() {
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { scholarships } = await import('./schema');
+
   return await db
     .select()
     .from(scholarships)
@@ -110,6 +127,10 @@ export async function getUserSavedScholarships() {
   if (!user) {
     throw new Error('User not authenticated');
   }
+
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { savedScholarships, scholarships } = await import('./schema');
 
   return await db
     .select({
@@ -139,6 +160,10 @@ export async function getUserNotifications() {
     throw new Error('User not authenticated');
   }
 
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { notifications } = await import('./schema');
+
   return await db
     .select()
     .from(notifications)
@@ -153,6 +178,10 @@ export async function getDashboardStats() {
   if (!user) {
     throw new Error('User not authenticated');
   }
+
+  // BugX: Dynamic imports to prevent build-time database connections
+  const { db } = await import('./drizzle');
+  const { applications, scholarships } = await import('./schema');
 
   // Get application statistics
   const applicationStats = await db
