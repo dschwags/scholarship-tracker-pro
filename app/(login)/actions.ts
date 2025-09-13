@@ -15,7 +15,8 @@ import {
 import { comparePasswords, hashPassword, setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getUser } from '@/lib/db/queries';
+// 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+// import { getUser } from '@/lib/db/queries';
 import {
   validatedAction,
   validatedActionWithUser
@@ -181,6 +182,8 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 });
 
 export async function signOut() {
+  // 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+  const { getUser } = await import('@/lib/db/queries');
   const user = (await getUser()) as User;
   await logActivity(user.id, ActivityType.SIGN_OUT);
   (await cookies()).delete('session');

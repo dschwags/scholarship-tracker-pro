@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { User } from '@/lib/db/schema';
-import { getUser } from '@/lib/db/queries';
+// 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+// import { getUser } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 import { UserRole, canAccessResource, hasPermission } from './roles';
 
@@ -40,6 +41,8 @@ export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
   action: ValidatedActionWithUserFunction<S, T>
 ) {
   return async (prevState: ActionState, formData: FormData) => {
+    // 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+    const { getUser } = await import('@/lib/db/queries');
     const user = await getUser();
     if (!user) {
       throw new Error('User is not authenticated');
@@ -67,6 +70,8 @@ export function validatedActionWithRole<S extends z.ZodType<any, any>, T>(
   action: ValidatedActionWithRoleFunction<S, T>
 ) {
   return async (prevState: ActionState, formData: FormData) => {
+    // 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+    const { getUser } = await import('@/lib/db/queries');
     const user = await getUser();
     if (!user) {
       return { error: 'Authentication required' };
@@ -96,6 +101,8 @@ export function validatedActionWithPermission<S extends z.ZodType<any, any>, T>(
   action: ValidatedActionWithRoleFunction<S, T>
 ) {
   return async (prevState: ActionState, formData: FormData) => {
+    // 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+    const { getUser } = await import('@/lib/db/queries');
     const user = await getUser();
     if (!user) {
       return { error: 'Authentication required' };
@@ -117,6 +124,8 @@ export function validatedActionWithPermission<S extends z.ZodType<any, any>, T>(
 // Authentication requirement wrapper
 export function requireAuth() {
   return async () => {
+    // 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+    const { getUser } = await import('@/lib/db/queries');
     const user = await getUser();
     if (!user) {
       redirect('/sign-in');
@@ -128,6 +137,8 @@ export function requireAuth() {
 // Role requirement wrapper
 export function requireRole(requiredRole: UserRole | UserRole[]) {
   return async () => {
+    // 🚨 BUGX FIX: Dynamic import to prevent getUser legacy lock chain
+    const { getUser } = await import('@/lib/db/queries');
     const user = await getUser();
     if (!user) {
       redirect('/sign-in');
