@@ -1,28 +1,18 @@
-import { verify, hash } from '@node-rs/argon2';
+import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 // NewUser type removed - using generic user object for setSession
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 export async function hashPassword(password: string) {
-  return hash(password, {
-    memoryCost: 19456,
-    timeCost: 2,
-    outputLen: 32,
-    parallelism: 1,
-  });
+  return bcrypt.hash(password, 12);
 }
 
 export async function comparePasswords(
   plainTextPassword: string,
   hashedPassword: string
 ) {
-  return verify(hashedPassword, plainTextPassword, {
-    memoryCost: 19456,
-    timeCost: 2,
-    outputLen: 32,
-    parallelism: 1,
-  });
+  return bcrypt.compare(plainTextPassword, hashedPassword);
 }
 
 type SessionData = {

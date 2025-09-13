@@ -1,6 +1,6 @@
 'use server'
 
-import { hash, verify } from '@node-rs/argon2'
+import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'

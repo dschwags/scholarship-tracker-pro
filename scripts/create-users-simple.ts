@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { hash } from '@node-rs/argon2';
+import bcrypt from 'bcryptjs';
 import { users, type NewUser } from '../lib/db/schema';
 
 // Database connection string from environment

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { verify } from '@node-rs/argon2';
+import bcrypt from 'bcryptjs';
 import { users } from '../lib/db/schema';
 import { eq } from 'drizzle-orm';
 
