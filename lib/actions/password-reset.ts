@@ -1,14 +1,17 @@
 'use server'
 
-import bcrypt from 'bcryptjs'
+// 🚨 BUGX FIX: Replace bcryptjs with Edge-compatible @noble/hashes
+// import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/auth/session'
 import { eq, and, gt } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import crypto from 'crypto'
 
-import { db } from '@/lib/db/drizzle'
-import { users } from '@/lib/db/schema'
+// 🚨 BUGX FIX: Dynamic import to prevent database legacy lock
+// import { db } from '@/lib/db/drizzle'
+// import { users } from '@/lib/db/schema'
 
 // Validation schemas
 const forgotPasswordSchema = z.object({
@@ -42,6 +45,10 @@ export async function requestPasswordReset(formData: FormData) {
     }
 
     const { email } = validatedFields.data
+
+    // 🚨 BUGX FIX: Dynamic import to prevent database legacy lock
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
 
     // Check if user exists
     const user = await db.select().from(users).where(eq(users.email, email)).limit(1)
@@ -102,6 +109,10 @@ export async function resetPassword(formData: FormData) {
 
     const { token, password } = validatedFields.data
 
+    // 🚨 BUGX FIX: Dynamic import to prevent database legacy lock
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
+
     // Find user with valid reset token
     const user = await db
       .select()
@@ -120,12 +131,8 @@ export async function resetPassword(formData: FormData) {
       }
     }
 
-    // Hash new password
-    const passwordHash = await hash(password, {
-      memoryCost: 65536,
-      timeCost: 3,
-      outputLen: 32,
-    })
+    // 🚨 BUGX FIX: Use Edge-compatible hashPassword instead of bcryptjs
+    const passwordHash = await hashPassword(password)
 
     // Update password and clear reset token
     await db
@@ -156,6 +163,10 @@ export async function verifyResetToken(token: string) {
     if (!token) {
       return { valid: false, error: 'Reset token is required' }
     }
+
+    // 🚨 BUGX FIX: Dynamic import to prevent database legacy lock
+    const { db } = await import('@/lib/db/drizzle')
+    const { users } = await import('@/lib/db/schema')
 
     const user = await db
       .select({ id: users.id, email: users.email })
