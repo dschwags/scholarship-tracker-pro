@@ -229,8 +229,15 @@ export function EnhancedTemplateBuilder({ onTemplateCreate, onCancel }: Enhanced
       title: customTitle || 'Custom Financial Goal',
       description: customDescription || 'Personalized financial planning template',
       components: Array.from(selectedComponents),
-      expenses: [],
-      funding: [],
+      expenses: [] as Array<{
+        key: string;
+        title: string;
+        placeholder: string;
+        description: string;
+        allowMultiple?: boolean;
+        required?: boolean;
+      }>,
+      funding: [] as string[],
       customFields: additionalFields.filter(f => f.title.trim()),
       estimatedTotal: getEstimatedTotal()
     };
