@@ -2,7 +2,8 @@
 
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { db } from '@/lib/db/drizzle';
+// 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+// import { db } from '@/lib/db/drizzle';
 import {
   User,
   users,
@@ -26,6 +27,9 @@ async function logActivity(
   ipAddress?: string,
   metadata?: string
 ) {
+  // 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+  const { db } = await import('@/lib/db/drizzle');
+  
   const newActivity: NewActivityLog = {
     userId,
     action: type,
@@ -42,6 +46,9 @@ const signInSchema = z.object({
 
 export const signIn = validatedAction(signInSchema, async (data, formData) => {
   const { email, password } = data;
+
+  // 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+  const { db } = await import('@/lib/db/drizzle');
 
   const foundUser = await db
     .select()
@@ -119,6 +126,9 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       password
     };
   }
+
+  // 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+  const { db } = await import('@/lib/db/drizzle');
 
   const existingUser = await db
     .select()
@@ -222,6 +232,9 @@ export const updatePassword = validatedActionWithUser(
 
     const newPasswordHash = await hashPassword(newPassword);
 
+    // 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+    const { db } = await import('@/lib/db/drizzle');
+
     await Promise.all([
       db
         .update(users)
@@ -253,6 +266,9 @@ export const deleteAccount = validatedActionWithUser(
       };
     }
 
+    // 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+    const { db } = await import('@/lib/db/drizzle');
+
     await Promise.all([
       db
         .update(users)
@@ -275,6 +291,9 @@ export const updateAccount = validatedActionWithUser(
   updateAccountSchema,
   async (data, _, user) => {
     const { name, email } = data;
+
+    // 🚨 BUGX FIX: Dynamic import to prevent legacy lock
+    const { db } = await import('@/lib/db/drizzle');
 
     const existingUser = await db
       .select()
