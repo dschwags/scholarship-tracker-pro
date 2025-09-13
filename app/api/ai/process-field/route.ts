@@ -21,6 +21,14 @@ const ProcessFieldSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     // Authentication
     const session = await getSession();
     if (!session?.user?.id) {

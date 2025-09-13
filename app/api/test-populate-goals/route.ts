@@ -1,12 +1,26 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { financialGoals, goalExpenses, goalFundingSources } from '@/lib/db/schema-financial-goals';
+// BugX: Dynamic imports to prevent build-time database issues
+// import { db } from '@/lib/db';
+// import { users } from '@/lib/db/schema';
+// import { financialGoals, goalExpenses, goalFundingSources } from '@/lib/db/schema-financial-goals';
 import { eq, or } from 'drizzle-orm';
 
 export async function POST() {
   try {
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     console.log('🎯 Starting financial goals population...');
+    
+    // BugX: Dynamic imports
+    const { db } = await import('@/lib/db');
+    const { users } = await import('@/lib/db/schema');
+    const { financialGoals, goalExpenses, goalFundingSources } = await import('@/lib/db/schema-financial-goals');
 
     // Get all test users
     const testUsers = await db

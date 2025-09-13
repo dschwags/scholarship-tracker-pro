@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser } from '@/lib/db/queries';
-import { GoalsDataMigrator } from '@/lib/data-migration/migrate-goals';
+// BugX: Dynamic imports to prevent build-time database issues
+// import { getUser } from '@/lib/db/queries';
+// import { GoalsDataMigrator } from '@/lib/data-migration/migrate-goals';
 
 export async function POST(request: NextRequest) {
   try {
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
+    // BugX: Dynamic imports
+    const { getUser } = await import('@/lib/db/queries');
+    const { GoalsDataMigrator } = await import('@/lib/data-migration/migrate-goals');
+    
     // Get authenticated user
     const user = await getUser();
     if (!user) {

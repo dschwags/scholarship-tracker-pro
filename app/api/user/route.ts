@@ -1,9 +1,18 @@
-import { getUser } from '@/lib/db/queries';
+// BugX: Dynamic imports to prevent build-time database issues
+// import { getUser } from '@/lib/db/queries';
 import { cookies } from 'next/headers';
 
 export async function GET() {
   try {
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return Response.json(null);
+    }
+    
     console.log('🔍 /api/user: Starting user fetch...');
+    
+    // BugX: Dynamic import
+    const { getUser } = await import('@/lib/db/queries');
     const sessionCookie = (await cookies()).get('session');
     console.log('🍪 /api/user: Session cookie exists:', !!sessionCookie?.value);
     
