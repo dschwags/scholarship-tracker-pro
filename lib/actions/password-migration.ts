@@ -2,8 +2,9 @@
 
 import { comparePasswords } from '@/lib/auth/session'
 import { eq } from 'drizzle-orm'
-import { db } from '@/lib/db/drizzle'
-import { users } from '@/lib/db/schema'
+// BugX: Dynamic imports to prevent legacy locks
+// import { db } from '@/lib/db/drizzle'
+// import { users } from '@/lib/db/schema'
 
 export async function verifyPasswordWithMigration(
   userId: number,
@@ -21,6 +22,10 @@ export async function verifyPasswordWithMigration(
 }
 
 export async function migrateUserPassword(userId: number, newHash: string) {
+  // BugX: Dynamic imports to prevent legacy locks
+  const { db } = await import('@/lib/db/drizzle');
+  const { users } = await import('@/lib/db/schema');
+  
   await db.update(users)
     .set({
       passwordHash: newHash,

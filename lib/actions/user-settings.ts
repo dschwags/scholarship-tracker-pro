@@ -1,12 +1,13 @@
 'use server'
 
-import bcrypt from 'bcryptjs'
+// BugX: Removed bcryptjs legacy lock - replaced with Edge Runtime compatible functions
+// import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 // BugX: Legacy locked element fix - moved database imports to dynamic imports inside functions
-import { getSession } from '@/lib/auth/session'
+import { getSession, hashPassword, comparePasswords } from '@/lib/auth/session'
 import { 
   UserPreferences, 
   PasswordChangeRequest, 
@@ -164,25 +165,15 @@ export async function changePassword(request: PasswordChangeRequest) {
       throw new Error('No password is set for this account. Please contact support.')
     }
 
-    // Verify current password
-    const isCurrentPasswordValid = await verify(user[0].passwordHash, request.currentPassword, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    })
+    // Verify current password - BugX: Use comparePasswords from session
+    const isCurrentPasswordValid = await comparePasswords(request.currentPassword, user[0].passwordHash)
 
     if (!isCurrentPasswordValid) {
       throw new Error('Current password is incorrect')
     }
 
-    // Hash new password
-    const hashedNewPassword = await hash(request.newPassword, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    })
+    // Hash new password - BugX: Use hashPassword from session
+    const hashedNewPassword = await hashPassword(request.newPassword)
 
     // Update password
     await db.update(users)
@@ -239,12 +230,8 @@ export async function changeEmail(request: EmailChangeRequest) {
       throw new Error('User not found')
     }
 
-    const isPasswordValid = await verify(user[0].passwordHash, request.password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    })
+    // BugX: Use comparePasswords from session for Edge Runtime compatibility
+    const isPasswordValid = await comparePasswords(request.password, user[0].passwordHash)
 
     if (!isPasswordValid) {
       throw new Error('Password is incorrect')
@@ -294,12 +281,8 @@ export async function deleteAccount(password: string) {
       throw new Error('User not found')
     }
 
-    const isPasswordValid = await verify(user[0].passwordHash, password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    })
+    // BugX: Use comparePasswords from session for Edge Runtime compatibility
+    const isPasswordValid = await comparePasswords(password, user[0].passwordHash)
 
     if (!isPasswordValid) {
       throw new Error('Password is incorrect')

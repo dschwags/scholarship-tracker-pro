@@ -1,8 +1,9 @@
 'use server';
 
-import { db } from '@/lib/db/drizzle';
-import { users, userConnections } from '@/lib/db/schema';
-import { getUser } from '@/lib/db/queries';
+// BugX: Dynamic imports to prevent legacy locks causing server-side exceptions
+// import { db } from '@/lib/db/drizzle';
+// import { users, userConnections } from '@/lib/db/schema';
+// import { getUser } from '@/lib/db/queries';
 import { eq, and } from 'drizzle-orm';
 import { signToken, verifyToken as jwtVerifyToken } from '@/lib/auth/session';
 
@@ -27,6 +28,11 @@ export interface ConnectionResult {
 // Parent/Counselor invites student via email
 export async function inviteStudent(studentEmail: string, connectionType: 'parent' | 'counselor' = 'parent'): Promise<ParentInviteResult> {
   try {
+    // BugX: Dynamic imports to prevent legacy locks
+    const { getUser } = await import('@/lib/db/queries');
+    const { db } = await import('@/lib/db/drizzle');
+    const { users, userConnections } = await import('@/lib/db/schema');
+    
     const currentUser = await getUser();
     if (!currentUser) {
       return { success: false, message: 'You must be logged in to invite a student.' };
@@ -87,6 +93,11 @@ export async function inviteStudent(studentEmail: string, connectionType: 'paren
 // Student invites parent via email
 export async function inviteParent(parentEmail: string, connectionType: 'parent' | 'counselor' = 'parent'): Promise<ParentInviteResult> {
   try {
+    // BugX: Dynamic imports to prevent legacy locks
+    const { getUser } = await import('@/lib/db/queries');
+    const { db } = await import('@/lib/db/drizzle');
+    const { users, userConnections } = await import('@/lib/db/schema');
+    
     const currentUser = await getUser();
     if (!currentUser) {
       return { success: false, message: 'You must be logged in to invite a parent.' };
@@ -147,6 +158,11 @@ export async function inviteParent(parentEmail: string, connectionType: 'parent'
 // Student accepts reverse invitation from parent/counselor
 export async function acceptStudentInvitation(inviteToken: string): Promise<ConnectionResult> {
   try {
+    // BugX: Dynamic imports to prevent legacy locks
+    const { getUser } = await import('@/lib/db/queries');
+    const { db } = await import('@/lib/db/drizzle');
+    const { users, userConnections } = await import('@/lib/db/schema');
+    
     const currentUser = await getUser();
     if (!currentUser) {
       return { success: false, message: 'You must be logged in to accept an invitation.' };
@@ -228,6 +244,11 @@ export async function acceptStudentInvitation(inviteToken: string): Promise<Conn
 // Parent accepts invitation
 export async function acceptParentInvitation(inviteToken: string): Promise<ConnectionResult> {
   try {
+    // BugX: Dynamic imports to prevent legacy locks
+    const { getUser } = await import('@/lib/db/queries');
+    const { db } = await import('@/lib/db/drizzle');
+    const { users, userConnections } = await import('@/lib/db/schema');
+    
     const currentUser = await getUser();
     if (!currentUser) {
       return { success: false, message: 'You must be logged in to accept an invitation.' };
@@ -309,6 +330,11 @@ export async function acceptParentInvitation(inviteToken: string): Promise<Conne
 // Get user's connections (for both students and parents)
 export async function getUserConnections() {
   try {
+    // BugX: Dynamic imports to prevent legacy locks
+    const { getUser } = await import('@/lib/db/queries');
+    const { db } = await import('@/lib/db/drizzle');
+    const { users, userConnections } = await import('@/lib/db/schema');
+    
     const currentUser = await getUser();
     if (!currentUser) {
       throw new Error('User not authenticated');

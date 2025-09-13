@@ -1,8 +1,9 @@
 'use server';
 
-import { db } from '@/lib/db/drizzle';
-import { users, userConnections } from '@/lib/db/schema';
-import { getUser } from '@/lib/db/queries';
+// BugX: Dynamic imports to prevent legacy locks causing server-side exceptions
+// import { db } from '@/lib/db/drizzle';
+// import { users, userConnections } from '@/lib/db/schema';
+// import { getUser } from '@/lib/db/queries';
 import { eq, and } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -14,6 +15,8 @@ export interface DeleteAccountResult {
 
 export async function deleteUserAccount(confirmationText?: string): Promise<DeleteAccountResult> {
   try {
+    // BugX: Dynamic import to prevent legacy lock
+    const { getUser } = await import('@/lib/db/queries');
     const currentUser = await getUser();
     if (!currentUser) {
       return { success: false, message: 'You must be logged in to delete your account.' };
@@ -27,6 +30,10 @@ export async function deleteUserAccount(confirmationText?: string): Promise<Dele
       };
     }
 
+    // BugX: Dynamic imports to prevent legacy locks
+    const { db } = await import('@/lib/db/drizzle');
+    const { users, userConnections } = await import('@/lib/db/schema');
+    
     // Start a transaction to delete all user data
     await db.transaction(async (tx) => {
       // 1. Delete all user connections (both as parent and child)
@@ -69,6 +76,11 @@ export interface RemoveCollaboratorResult {
 
 export async function removeCollaborator(connectionId: number): Promise<RemoveCollaboratorResult> {
   try {
+    // BugX: Dynamic imports to prevent legacy lock
+    const { getUser } = await import('@/lib/db/queries');
+    const { db } = await import('@/lib/db/drizzle');
+    const { userConnections } = await import('@/lib/db/schema');
+    
     const currentUser = await getUser();
     if (!currentUser) {
       return { success: false, message: 'You must be logged in to remove collaborators.' };
