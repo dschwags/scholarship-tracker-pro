@@ -86,7 +86,7 @@ export async function POST() {
         // Add detailed expenses
         if (goalData.expenses) {
           for (const expense of goalData.expenses) {
-            await db.insert(goalExpenses).values({
+            await (db.insert(goalExpenses) as any).values({
               goalId: createdGoal.id,
               name: expense.name,
               amount: expense.amount,
@@ -94,11 +94,11 @@ export async function POST() {
               frequency: expense.frequency,
               creditHours: expense.creditHours,
               locationDependent: expense.locationDependent,
-              confidenceLevel: expense.confidenceLevel || '0.8',
-              dataSource: expense.dataSource || 'test_data',
+              confidenceLevel: ('confidenceLevel' in expense ? expense.confidenceLevel : null) || '0.8',
+              dataSource: ('dataSource' in expense ? expense.dataSource : null) || 'test_data',
               createdAt: new Date(),
               updatedAt: new Date()
-            });
+            } as any);
           }
           console.log(`   💡 Added ${goalData.expenses.length} expenses`);
         }
@@ -106,20 +106,20 @@ export async function POST() {
         // Add funding sources
         if (goalData.fundingSources) {
           for (const source of goalData.fundingSources) {
-            await db.insert(goalFundingSources).values({
+            await (db.insert(goalFundingSources) as any).values({
               goalId: createdGoal.id,
               sourceName: source.sourceName,
               sourceType: source.sourceType,
               amount: source.amount,
               probabilityPercentage: source.probabilityPercentage,
-              deadline: source.deadline,
+              deadline: 'deadline' in source ? source.deadline : null,
               renewable: source.renewable,
               applicationStatus: source.applicationStatus,
               confirmedAmount: source.confirmedAmount || '0',
-              confidenceScore: source.confidenceScore || '0.7',
+              confidenceScore: ('confidenceScore' in source ? source.confidenceScore : null) || '0.7',
               createdAt: new Date(),
               updatedAt: new Date()
-            });
+            } as any);
           }
           console.log(`   🎓 Added ${goalData.fundingSources.length} funding sources`);
         }

@@ -38,7 +38,7 @@ interface BulletproofFinancialFormProps {
 }
 
 // BugX Safe: Helper for safe property access
-const safeAccess = <T>(obj: any, path: string, defaultValue: T): T => {
+const safeAccess = <T,>(obj: any, path: string, defaultValue: T): T => {
   const keys = path.split('.');
   let current = obj;
   for (const key of keys) {
@@ -319,7 +319,7 @@ export default function BulletproofFinancialFormV2({
                     )}
                     
                     {/* Housing Type Conditional */}
-                    {expense.key === 'roomAndBoard' && (
+                    {(expense.key as string) === 'roomAndBoard' && (
                       <div className="flex items-center gap-2 mt-2">
                         <Label className="text-xs">Housing Type:</Label>
                         <Select

@@ -195,7 +195,7 @@ export function EnhancedFinancialAnalytics({ stats }: EnhancedFinancialAnalytics
     // Determine risk level
     let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
     if (overdueGoals > 0 || overallProgress < 25) riskLevel = 'critical';
-    else if (behindGoals > activeGoals / 2 || overallProgress < 50) riskLevel = 'high';
+    else if (behindGoals > (Number(activeGoals) || 0) / 2 || overallProgress < 50) riskLevel = 'high';
     else if (behindGoals > 0 || overallProgress < 75) riskLevel = 'medium';
 
     setAnalytics({

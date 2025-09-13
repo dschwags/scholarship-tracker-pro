@@ -131,8 +131,8 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const addExpenseEntry = (section: string) => {
-    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
-    const currentEntries = safeAccess(currentSection, 'entries', []);
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {} as any);
+    const currentEntries = safeAccess(currentSection as any, 'entries', []);
     const newEntry = {
       amount: 0,
       type: section === 'transportation' ? 'car' : 'other',
@@ -143,15 +143,15 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
   };
 
   const removeExpenseEntry = (section: string, index: number) => {
-    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
-    const currentEntries = safeAccess(currentSection, 'entries', []);
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {} as any);
+    const currentEntries = safeAccess(currentSection as any, 'entries', []);
     const newEntries = currentEntries.filter((_: any, i: number) => i !== index);
     updateExpense(section, 'entries', newEntries);
   };
 
   const updateExpenseEntry = (section: string, index: number, field: string, value: any) => {
-    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {});
-    const currentEntries = safeAccess(currentSection, 'entries', []);
+    const currentSection = safeAccess(formData.expenses, section as keyof typeof formData.expenses, {} as any);
+    const currentEntries = safeAccess(currentSection as any, 'entries', []);
     const newEntries = [...currentEntries];
     newEntries[index] = { ...newEntries[index], [field]: value };
     updateExpense(section, 'entries', newEntries);
@@ -186,7 +186,7 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                     type="number"
                     className="w-24 pl-6 text-sm"
                     placeholder={expense.placeholder}
-                    value={safeAccess(formData.expenses, `${expense.key}.amount`, '') || ''}
+                    value={String(safeAccess(formData.expenses, `${expense.key}.amount` as any, '') || '')}
                     onChange={(e) => updateExpense(expense.key, 'amount', parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -201,7 +201,7 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
               <div className="flex items-center gap-2 mt-2">
                 <Label className="text-xs">Housing Type:</Label>
                 <Select
-                  value={safeAccess(formData.expenses, 'roomAndBoard.housingType', 'dorm')}
+                  value={String(safeAccess(formData.expenses, 'roomAndBoard.housingType' as any, 'dorm'))}
                   onValueChange={(value) => updateExpense('roomAndBoard', 'housingType', value)}
                 >
                   <SelectTrigger className="w-28 h-7 text-xs">
@@ -222,7 +222,7 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
               <div className="flex items-center gap-2 mt-2">
                 <Label className="text-xs">Transport Type:</Label>
                 <Select
-                  value={safeAccess(formData.expenses, 'transportation.type', 'car')}
+                  value={String(safeAccess(formData.expenses, 'transportation.type' as any, 'car'))}
                   onValueChange={(value) => updateExpense('transportation', 'type', value)}
                 >
                   <SelectTrigger className="w-28 h-7 text-xs">
@@ -242,7 +242,7 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
             {/* Multiple entries support for transportation and other */}
             {(expense.key === 'transportation' || expense.key === 'other') && (
               <div className="space-y-2">
-                {safeAccess(formData.expenses, `${expense.key}.entries`, []).map((entry: any, index: number) => (
+                {safeAccess(formData.expenses as any, `${expense.key}.entries`, []).map((entry: any, index: number) => (
                   <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
                     <Input
                       placeholder="Description"
@@ -301,9 +301,9 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 <Input
                   type="number"
                   className="pl-6 text-sm h-8"
-                  value={safeAccess(formData.fundingSources, 'federalAid.pellGrant.amount', '') || ''}
+                  value={String(safeAccess(formData.fundingSources, 'federalAid.pellGrant.amount' as any, '') || '')}
                   onChange={(e) => updateFunding('federalAid', 'pellGrant', { 
-                    ...safeAccess(formData.fundingSources, 'federalAid.pellGrant', {}),
+                    ...safeAccess(formData.fundingSources, 'federalAid.pellGrant' as any, {} as any),
                     amount: parseFloat(e.target.value) || 0 
                   })}
                 />
@@ -316,9 +316,9 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 <Input
                   type="number"
                   className="pl-6 text-sm h-8"
-                  value={safeAccess(formData.fundingSources, 'federalAid.workStudy.amount', '') || ''}
+                  value={String((safeAccess(formData.fundingSources as any, 'federalAid.workStudy.amount', '') as any) || '')}
                   onChange={(e) => updateFunding('federalAid', 'workStudy', { 
-                    ...safeAccess(formData.fundingSources, 'federalAid.workStudy', {}),
+                    ...(safeAccess(formData.fundingSources as any, 'federalAid.workStudy', {}) as any),
                     amount: parseFloat(e.target.value) || 0 
                   })}
                 />
@@ -331,9 +331,9 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 <Input
                   type="number"
                   className="pl-6 text-sm h-8"
-                  value={safeAccess(formData.fundingSources, 'federalAid.subsidizedLoans.amount', '') || ''}
+                  value={String((safeAccess(formData.fundingSources as any, 'federalAid.subsidizedLoans.amount', '') as any) || '')}
                   onChange={(e) => updateFunding('federalAid', 'subsidizedLoans', { 
-                    ...safeAccess(formData.fundingSources, 'federalAid.subsidizedLoans', {}),
+                    ...(safeAccess(formData.fundingSources as any, 'federalAid.subsidizedLoans', {}) as any),
                     amount: parseFloat(e.target.value) || 0 
                   })}
                 />
@@ -346,9 +346,9 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 <Input
                   type="number"
                   className="pl-6 text-sm h-8"
-                  value={safeAccess(formData.fundingSources, 'federalAid.unsubsidizedLoans.amount', '') || ''}
+                  value={String((safeAccess(formData.fundingSources as any, 'federalAid.unsubsidizedLoans.amount', '') as any) || '')}
                   onChange={(e) => updateFunding('federalAid', 'unsubsidizedLoans', { 
-                    ...safeAccess(formData.fundingSources, 'federalAid.unsubsidizedLoans', {}),
+                    ...(safeAccess(formData.fundingSources as any, 'federalAid.unsubsidizedLoans', {}) as any),
                     amount: parseFloat(e.target.value) || 0 
                   })}
                 />
@@ -367,7 +367,7 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 type="number"
                 className="pl-6 text-sm h-8 w-32"
                 placeholder="15000"
-                value={safeAccess(formData.fundingSources, 'familyContribution.amount', '') || ''}
+                value={String((safeAccess(formData.fundingSources as any, 'familyContribution.amount', '') as any) || '')}
                 onChange={(e) => updateFunding('familyContribution', 'amount', parseFloat(e.target.value) || 0)}
               />
             </div>
@@ -384,12 +384,12 @@ export function EnhancedFinancialForm({ formData, onChange, errors, onSaveSectio
                 type="number"
                 className="pl-6 text-sm h-8 w-28"
                 placeholder="5000"
-                value={safeAccess(formData.fundingSources, 'employment.amount', '') || ''}
+                value={String((safeAccess(formData.fundingSources as any, 'employment.amount', '') as any) || '')}
                 onChange={(e) => updateFunding('employment', 'amount', parseFloat(e.target.value) || 0)}
               />
             </div>
             <Select
-              value={safeAccess(formData.fundingSources, 'employment.jobType', 'part-time')}
+              value={String((safeAccess(formData.fundingSources as any, 'employment.jobType', 'part-time') as any))}
               onValueChange={(value) => updateFunding('employment', 'jobType', value)}
             >
               <SelectTrigger className="w-32 h-8 text-sm">

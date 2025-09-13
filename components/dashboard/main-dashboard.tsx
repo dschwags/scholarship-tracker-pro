@@ -410,18 +410,18 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       financialMetrics,
       // Override funding with enhanced data if available
       funding: {
-        ...currentStats.funding,
-        won: enhancedStats.funding?.won ?? currentStats.funding.won,
-        potential: enhancedStats.funding?.potential ?? currentStats.funding.potential,
-        total: enhancedStats.funding?.total ?? currentStats.funding.total
+        ...(currentStats.funding as any),
+        won: (enhancedStats.funding as any)?.won ?? (currentStats.funding as any)?.won,
+        potential: (enhancedStats.funding as any)?.potential ?? (currentStats.funding as any)?.potential,
+        total: (enhancedStats.funding as any)?.total ?? (currentStats.funding as any)?.total
       }
     };
   }, [currentStats, enhancedStats, hasRealGoalsData, isUsingNewSystem, financialMetrics]);
   
   console.log('📊 Current stats being used:', {
     source: scholarships.length > 0 ? 'server-calculated' : 'client-calculated',
-    totalApplications: enhancedCurrentStats.applications.total,
-    totalTracked: enhancedCurrentStats.funding.won + (enhancedCurrentStats.funding.potential || 0),
+    totalApplications: (enhancedCurrentStats as any).applications.total,
+    totalTracked: (enhancedCurrentStats as any).funding.won + ((enhancedCurrentStats as any).funding.potential || 0),
     scholarshipsFromServer: scholarships.length,
     scholarshipsFromState: scholarshipsData.length
   });
@@ -451,8 +451,8 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       <WelcomeDashboard 
         userName={user.name || 'Student'}
         stats={welcomeStats || {
-          totalTracked: enhancedCurrentStats.funding.potential || 0,
-          applications: enhancedCurrentStats.applications.total,
+          totalTracked: (enhancedCurrentStats as any).funding.potential || 0,
+          applications: (enhancedCurrentStats as any).applications.total,
           collaborators: 0
         }}
         onGetStarted={() => {
@@ -526,7 +526,7 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
       
       {/* Dashboard Content */}
       {/* Compact Single Line Stats */}
-      <DashboardStats stats={enhancedCurrentStats} />
+      <DashboardStats stats={enhancedCurrentStats as any} />
 
       {/* Embedded Financial Goals - Re-enabled after fixing infinite loops */}
       {/* TEMPORARILY DISABLED: EmbeddedFinancialGoals - causing safety system triggers */}
@@ -543,9 +543,9 @@ export function MainDashboard({ user, stats, recentActivity, scholarships = [], 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           <div className="relative">
             <div className="absolute right-0 top-6 bottom-6 w-px bg-green-200/50 dark:bg-green-700/50 lg:block hidden"></div>
-            <FinancialProgress stats={enhancedCurrentStats} />
+            <FinancialProgress stats={enhancedCurrentStats as any} />
           </div>
-          <GapAnalysis stats={enhancedCurrentStats} />
+          <GapAnalysis stats={enhancedCurrentStats as any} />
         </div>
       </div>
 

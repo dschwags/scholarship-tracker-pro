@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db } from '@/lib/db/drizzle';
 import { users } from '@/lib/db/schema';
 import { financialGoals, goalExpenses, goalFundingSources } from '@/lib/db/schema-financial-goals';
 import { eq, or } from 'drizzle-orm';
@@ -85,7 +85,7 @@ export async function POST() {
         // Add detailed expenses
         if (goalData.expenses) {
           for (const expense of goalData.expenses) {
-            await db.insert(goalExpenses).values({
+            await (db.insert(goalExpenses) as any).values({
               goalId: createdGoal.id,
               name: expense.name,
               amount: expense.amount,
@@ -105,20 +105,20 @@ export async function POST() {
         // Add funding sources
         if (goalData.fundingSources) {
           for (const source of goalData.fundingSources) {
-            await db.insert(goalFundingSources).values({
+            await (db.insert(goalFundingSources) as any).values({
               goalId: createdGoal.id,
               sourceName: source.sourceName,
               sourceType: source.sourceType,
               amount: source.amount,
               probabilityPercentage: source.probabilityPercentage,
-              deadline: source.deadline,
+              deadline: 'deadline' in source ? source.deadline : null,
               renewable: source.renewable,
               applicationStatus: source.applicationStatus,
               confirmedAmount: source.confirmedAmount || '0',
-              confidenceScore: source.confidenceScore || '0.7',
+              confidenceScore: ('confidenceScore' in source ? source.confidenceScore : null) || '0.7',
               createdAt: new Date(),
               updatedAt: new Date()
-            });
+            } as any);
           }
           console.log(`   🎓 Added ${goalData.fundingSources.length} funding sources`);
         }

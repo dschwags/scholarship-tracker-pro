@@ -23,10 +23,10 @@ export function SafetyDemoBasic() {
     status: "safe"
   });
 
-  const [messages, setMessages] = useState([]);
-  const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const [messages, setMessages] = useState<string[]>([]);
+  const [savedSnapshot, setSavedSnapshot] = useState<any>(null);
 
-  const addMessage = (message) => {
+  const addMessage = (message: string) => {
     setMessages(prev => [...prev.slice(-3), message]);
   };
 
@@ -81,7 +81,7 @@ export function SafetyDemoBasic() {
     addMessage("🔄 Demo reset");
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

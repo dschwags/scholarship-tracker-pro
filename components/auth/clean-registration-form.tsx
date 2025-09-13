@@ -1,4 +1,4 @@
-https://3000-605596b9877c-web.clackypaas.com'use client';
+'use client';
 
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -153,8 +153,8 @@ export function CleanRegistrationForm({ onSubmit }: CleanRegistrationFormProps) 
         const submitData = {
           ...formData,
           role: selectedRole,
-          educationLevel: mapEducationLevelToEnum(selectedEducationLevel),
-          educationalStatus: mapEducationalStatusToEnum(selectedEducationLevel)
+          educationLevel: mapEducationLevelToEnum(selectedEducationLevel) || '',
+          educationalStatus: mapEducationalStatusToEnum(selectedEducationLevel) || ''
         };
 
         if (onSubmit) {

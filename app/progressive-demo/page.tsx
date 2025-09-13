@@ -198,7 +198,7 @@ export default function ProgressiveDisclosureDemoPage() {
                     <ul className="text-sm space-y-1 text-gray-600">
                       <li>• Target Amount → Current Savings</li>
                       <li>• Basic Info → Monthly Contribution</li>
-                      <li>• Large Goals (>$10k) → Detailed Planning</li>
+                      <li>• Large Goals (&gt;$10k) → Detailed Planning</li>
                       <li>• Low Confidence → Clarification Fields</li>
                     </ul>
                   </div>

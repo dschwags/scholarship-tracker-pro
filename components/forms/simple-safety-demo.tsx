@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { rollbackEngine } from "@/lib/safety-systems/rollback-engine";
+import { RollbackEngine } from "@/lib/safety-systems/rollback-engine";
 
 interface FormData {
   monthlyIncome: string;
@@ -25,6 +25,7 @@ interface SafetyMetrics {
 }
 
 export function SimpleSafetyDemo() {
+  const rollbackEngine = new RollbackEngine('demo-session');
   const [formData, setFormData] = useState<FormData>({
     monthlyIncome: "",
     monthlyExpenses: "",
@@ -48,11 +49,12 @@ export function SimpleSafetyDemo() {
 
   const createSnapshot = async () => {
     try {
-      const snapshot = await rollbackEngine.createSnapshot('manual-demo', {
+      const snapshotId = rollbackEngine.createSnapshot(
         formData,
-        timestamp: new Date().toISOString(),
-        userAction: 'manual_snapshot'
-      });
+        { currentPhase: 'demo' },
+        { disclosureContext: {} },
+        'manual-demo'
+      );
 
       setSafetyMetrics(prev => ({
         ...prev,
@@ -61,7 +63,7 @@ export function SimpleSafetyDemo() {
       }));
 
       addMessage('✅ Manual snapshot created successfully');
-      return snapshot;
+      return snapshotId;
     } catch (error) {
       addMessage('❌ Failed to create snapshot');
       return null;
@@ -80,17 +82,20 @@ export function SimpleSafetyDemo() {
 
   const rollbackToLastSnapshot = async () => {
     try {
-      const snapshots = rollbackEngine.getSnapshots('manual-demo');
+      const snapshots = rollbackEngine.getSnapshots();
       if (snapshots.length > 0) {
-        const lastSnapshot = snapshots[snapshots.length - 1];
-        if (lastSnapshot.data.formData) {
-          setFormData(lastSnapshot.data.formData as FormData);
+        const lastSnapshotId = snapshots[snapshots.length - 1].id;
+        const restoredSnapshot = rollbackEngine.rollbackToSnapshot(lastSnapshotId);
+        if (restoredSnapshot && restoredSnapshot.formData) {
+          setFormData(restoredSnapshot.formData as FormData);
           setSafetyMetrics(prev => ({
             ...prev,
             confidenceLevel: 100,
             safetyStatus: 'safe'
           }));
           addMessage('🔄 Rollback successful - form restored');
+        } else {
+          addMessage('❌ Rollback data not available');
         }
       } else {
         addMessage('❌ No snapshots available for rollback');
@@ -115,7 +120,7 @@ export function SimpleSafetyDemo() {
       lastSnapshot: 'Never'
     });
     setMessages([]);
-    rollbackEngine.clearSnapshots('manual-demo');
+    rollbackEngine.clearSnapshots();
     addMessage('🔄 Demo reset complete');
   };
 
