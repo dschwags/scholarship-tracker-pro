@@ -92,10 +92,10 @@ export async function populateFinancialGoalsAction() {
               amount: expense.amount,
               isEstimated: expense.isEstimated,
               frequency: expense.frequency,
-              creditHours: expense.creditHours,
+              creditHours: 'creditHours' in expense ? expense.creditHours : null,
               locationDependent: expense.locationDependent,
-              confidenceLevel: expense.confidenceLevel || '0.8',
-              dataSource: expense.dataSource || 'test_data',
+              confidenceLevel: 'confidenceLevel' in expense ? expense.confidenceLevel : '0.8',
+              dataSource: 'dataSource' in expense ? expense.dataSource : 'test_data',
               createdAt: new Date(),
               updatedAt: new Date()
             });

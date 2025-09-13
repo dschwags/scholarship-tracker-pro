@@ -13,6 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import { users } from './schema';
 
 // Enhanced Enums for Financial Goals
 export const goalTypeEnum = pgEnum('goal_type', [
@@ -365,5 +366,3 @@ export const goalProgressRelations = relations(goalProgress, ({ one }) => ({
   }),
 }));
 
-// Import users table reference (assuming it exists in main schema)
-import { users } from './schema';
