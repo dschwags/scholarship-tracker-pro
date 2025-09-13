@@ -7,14 +7,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { db } from '@/lib/db/drizzle';
-import { 
-  financialGoals, 
-  goalExpenses, 
-  goalFundingSources,
-  costCalculationTemplates,
-  aiFormContexts
-} from '@/lib/db/schema-financial-goals';
+// BugX: Dynamic imports to prevent build-time database issues
+// import { db } from '@/lib/db/drizzle';
+// import { 
+//   financialGoals, 
+//   goalExpenses, 
+//   goalFundingSources,
+//   costCalculationTemplates,
+//   aiFormContexts
+// } from '@/lib/db/schema-financial-goals';
 import { eq, and, desc } from 'drizzle-orm';
 import { aiDecisionEngine } from '@/lib/ai/decision-engine';
 import { z } from 'zod';
@@ -104,6 +105,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<APIRespons
   try {
     console.log('🔍 GET /api/financial-goals - Starting request');
     
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { success: false, error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     // Authenticate user
     const session = await getSession();
     if (!session?.user?.id) {
@@ -115,6 +124,16 @@ export async function GET(request: NextRequest): Promise<NextResponse<APIRespons
     }
 
     console.log(`✅ Authenticated user: ${session.user.id}`);
+    
+    // BugX: Dynamic imports
+    const { db } = await import('@/lib/db/drizzle');
+    const { 
+      financialGoals, 
+      goalExpenses, 
+      goalFundingSources,
+      costCalculationTemplates,
+      aiFormContexts
+    } = await import('@/lib/db/schema-financial-goals');
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
@@ -210,6 +229,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
   try {
     console.log('🆕 POST /api/financial-goals - Starting goal creation');
     
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { success: false, error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     // Authenticate user
     const session = await getSession();
     if (!session?.user?.id) {
@@ -218,6 +245,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<APIRespon
         { status: 401 }
       );
     }
+    
+    // BugX: Dynamic imports
+    const { db } = await import('@/lib/db/drizzle');
+    const { 
+      financialGoals, 
+      goalExpenses, 
+      goalFundingSources,
+      costCalculationTemplates,
+      aiFormContexts
+    } = await import('@/lib/db/schema-financial-goals');
 
     // Parse and validate request body
     const rawData = await request.json();

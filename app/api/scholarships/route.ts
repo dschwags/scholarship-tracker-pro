@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
-import { db } from '@/lib/db/drizzle'
-import { scholarships, applications } from '@/lib/db/schema'
+// BugX: Dynamic imports to prevent build-time database issues
+// import { db } from '@/lib/db/drizzle'
+// import { scholarships, applications } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 // GET: Fetch scholarships for authenticated user
@@ -9,6 +10,14 @@ export async function GET(request: NextRequest) {
   console.log('📋 /api/scholarships: Starting scholarship fetch...')
   
   try {
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     const session = await getSession()
     if (!session) {
       console.log('❌ /api/scholarships: No session found')
@@ -16,6 +25,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ /api/scholarships: Session valid, fetching scholarships for user:', session.user.id)
+    
+    // BugX: Dynamic imports
+    const { db } = await import('@/lib/db/drizzle');
+    const { scholarships, applications } = await import('@/lib/db/schema');
     
     // Get scholarships created by this user along with application data
     const userScholarships = await db
@@ -54,11 +67,23 @@ export async function POST(request: NextRequest) {
   console.log('💾 /api/scholarships: Starting scholarship creation...')
   
   try {
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json(
+        { error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     const session = await getSession()
     if (!session) {
       console.log('❌ /api/scholarships: No session found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    // BugX: Dynamic imports
+    const { db } = await import('@/lib/db/drizzle');
+    const { scholarships, applications } = await import('@/lib/db/schema');
 
     const body = await request.json()
     console.log('📝 /api/scholarships: Received data:', { 

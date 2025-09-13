@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
-import { db } from '@/lib/db/drizzle'
-import { scholarships, applications } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+// BugX: Lazy load database imports to prevent build-time connection
+// import { db } from '@/lib/db/drizzle'
+// import { scholarships, applications } from '@/lib/db/schema'
+// import { eq } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +16,29 @@ export async function GET(request: NextRequest) {
     }
     
     console.log('✅ Dashboard API: Session valid, fetching data for user:', session.user.email);
+    
+    // BugX: Check database availability
+    if (!process.env.POSTGRES_URL) {
+      console.log('⚠️ Dashboard API: Database not configured, returning mock data');
+      return Response.json({
+        userScholarships: [],
+        stats: {
+          applications: { total: 0, submitted: 0, draft: 0, accepted: 0, rejected: 0 },
+          scholarships: { saved: 0, available: 0 },
+          funding: { total: 0, won: 0, potential: 0 },
+          successRate: 0,
+          upcomingDeadlines: 0
+        },
+        welcomeStats: { applications: 0, totalTracked: 0, collaborators: 0 },
+        recentActivity: [],
+        user: session.user
+      });
+    }
+
+    // Dynamic imports to prevent build-time database connection
+    const { db } = await import('@/lib/db/drizzle');
+    const { scholarships } = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
     
     // Fetch real scholarship data directly from database
     let userScholarships: any[] = [];

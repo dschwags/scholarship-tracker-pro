@@ -1,13 +1,23 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
-import { db } from '@/lib/db/drizzle'
-import { users } from '@/lib/db/schema'
+// BugX: Dynamic imports to prevent build-time database issues
+// import { db } from '@/lib/db/drizzle'
+// import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getUserPreferences } from '@/lib/actions/user-settings'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('⚙️ Settings API: Starting data fetch...');
+    
+    // BugX: Environment check
+    if (!process.env.POSTGRES_URL) {
+      return Response.json(
+        { error: 'Database not configured in this environment' },
+        { status: 503 }
+      );
+    }
+    
     const session = await getSession();
     
     if (!session) {
@@ -16,6 +26,10 @@ export async function GET(request: NextRequest) {
     }
     
     console.log('✅ Settings API: Session valid, fetching data for user:', session.user.email);
+    
+    // BugX: Dynamic imports
+    const { db } = await import('@/lib/db/drizzle');
+    const { users } = await import('@/lib/db/schema');
     
     // Fetch complete user data from database
     const userData = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
